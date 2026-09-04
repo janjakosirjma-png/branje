@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bralna aplikacija</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Calibri, Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 26px;
+      background: white;
+      border-bottom: 1px solid #ddd;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .koda {
+      background: #eef3ff;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 25px auto;
+      padding: 0 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 16px;
+      font-size: 16px;
+    }
+
+    .primary {
+      background: #2f65d9;
+      color: white;
+    }
+
+    .secondary {
+      background: white;
+      border: 1px solid #ccc;
+    }
+
+    .panel {
+      background: white;
+      border-radius: 14px;
+      padding: 22px;
+      border: 1px solid #ddd;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* OTROK */
+
+    .bralnoBesedilo {
+      margin-top: 20px;
+      padding: 35px;
+      min-height: 350px;
+      background: white;
+      border-radius: 16px;
+
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 24px;
+      line-height: 1.7;
+
+      white-space: pre-wrap;
+    }
+
+    .b {
+      color: green;
+      font-weight: bold;
+    }
+
+    .d {
+      color: red;
+      font-weight: bold;
+    }
+
+    /* UČITELJ */
+
+    .teacher-grid {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-weight: bold;
+    }
+
+    textarea,
+    input,
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #bbb;
+      font-size: 16px;
+    }
+
+    textarea {
+      min-height: 170px;
+      resize: vertical;
+    }
+
+    .besede {
+      font-size: 21px;
+      line-height: 2;
+    }
+
+    .beseda {
+      display: inline-block;
+      margin: 2px;
+      padding: 2px 5px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .beseda:hover {
+      background: #eef3ff;
+    }
+
+    .beseda.napaka {
+      background: #ffe0e0;
+    }
+
+    .errorBox {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+
+    .summary {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+
+    .errorItem {
+      padding: 8px 0;
+      border-bottom: 1px dashed #ddd;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .rangeValue {
+      font-weight: normal;
+      color: #666;
+      margin-left: 6px;
+    }
+
+    @media (max-width: 800px) {
+      .teacher-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Bralna aplikacija</h1>
+
+  <div class="koda">
+    Koda seje: 482731
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="primary" onclick="pokaziOtroka()">
+      Otroški pogled
+    </button>
+
+    <button class="secondary" onclick="pokaziUcitelja()">
+      Pogled učitelja
+    </button>
+  </div>
+
+
+  <!-- OTROŠKI POGLED -->
+
+  <section id="otrok">
+
+    <div class="panel">
+      <strong>Otroški pogled</strong>
+      <p>
+        Otrok vidi samo prilagojeno besedilo.
+      </p>
+    </div>
+
+    <div
+      id="bralnoBesedilo"
+      class="bralnoBesedilo">
+    </div>
+
+  </section>
+
+
+  <!-- UČITELJSKI POGLED -->
+
+  <section
+    id="ucitelj"
+    class="hidden">
+
+    <div class="teacher-grid">
+
+      <!-- NASTAVITVE -->
+
+      <div class="panel controls">
+
+        <h2>Nastavitve</h2>
+
+        <label>
+          Besedilo
+        </label>
+
+        <textarea id="inputBesedilo">Danes bomo odšli na dolg sprehod. Na poti bomo opazovali drevesa, ptice in drobne cvetlice. Brali bomo počasi, povezano in pozorno.</textarea>
+
+
+        <label>
+          Velikost pisave:
+          <span id="fontValue" class="rangeValue">24 px</span>
+        </label>
+
+        <input
+          id="fontSize"
+          type="range"
+          min="16"
+          max="42"
+          value="24">
+
+
+        <label>
+          Razmik med vrsticami:
+          <span id="lineValue" class="rangeValue">1.7</span>
+        </label>
+
+        <input
+          id="lineHeight"
+          type="range"
+          min="1.2"
+          max="2.4"
+          step="0.1"
+          value="1.7">
+
+
+        <label>
+          Pisava
+        </label>
+
+        <select id="fontFamily">
+          <option value="Calibri, Arial, sans-serif">
+            Calibri
+          </option>
+
+          <option value="Arial, sans-serif">
+            Arial
+          </option>
+
+          <option value="Verdana, sans-serif">
+            Verdana
+          </option>
+
+          <option value="Georgia, serif">
+            Georgia
+          </option>
+        </select>
+
+
+        <label>
+          Ozadje
+        </label>
+
+        <select id="background">
+          <option value="#ffffff">
+            Belo
+          </option>
+
+          <option value="#fffcec">
+            Rahlo rumenkasto
+          </option>
+
+          <option value="#f3f7ff">
+            Rahlo modrikasto
+          </option>
+
+          <option value="#f3f3f3">
+            Svetlo sivo
+          </option>
+        </select>
+
+
+        <label>
+          <input
+            id="markBD"
+            type="checkbox"
+            checked
+            style="width:auto;">
+          Obarvaj b zeleno in d rdeče
+        </label>
+
+
+        <button
+          class="primary"
+          onclick="posodobiBesedilo()">
+          Posodobi otrokov pogled
+        </button>
+
+      </div>
+
+
+      <!-- BESEDILO UČITELJA -->
+
+      <div class="panel">
+
+        <h2>Beleženje branja</h2>
+
+        <p>
+          Ko otrok naredi napako, klikni na besedo.
+        </p>
+
+        <div
+          id="klikljiveBesede"
+          class="besede">
+        </div>
+
+
+        <!-- NAPAKA -->
+
+        <div
+          id="errorBox"
+          class="errorBox hidden">
+
+          <h3 id="selectedWord">
+          </h3>
+
+
+          <label>
+            Vrsta napake
+          </label>
+
+          <select id="errorType">
+
+            <option value="menjava črk">
+              Menjava črk
+            </option>
+
+            <option value="izpust">
+              Izpust
+            </option>
+
+            <option value="dodajanje">
+              Dodajanje
+            </option>
+
+            <option value="zamenjan vrstni red">
+              Zamenjan vrstni red
+            </option>
+
+            <option value="nepovezano / zlogovano">
+              Nepovezano / zlogovano
+            </option>
+
+            <option value="zastoj">
+              Zastoj
+            </option>
+
+            <option value="samopopravek">
+              Samopopravek
+            </option>
+
+            <option value="drugo">
+              Drugo
+            </option>
+
+          </select>
+
+
+          <label>
+            Otrok je prebral:
+          </label>
+
+          <input
+            id="wrongReading"
+            placeholder="npr. bober">
+
+
+          <br><br>
+
+          <button
+            class="primary"
+            onclick="shraniNapako()">
+            Shrani
+          </button>
+
+          <button
+            class="secondary"
+            onclick="zapriNapako()">
+            Prekliči
+          </button>
+
+        </div>
+
+
+        <!-- POVZETEK -->
+
+        <div class="summary">
+
+          <h3>Povzetek napak</h3>
+
+          <div id="errorsList">
+            Ni zabeleženih napak.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
+
+
+<script>
+
+let izbranaBeseda = "";
+let izbraniElement = null;
+let napake = [];
+
+
+function pokaziOtroka() {
+
+  document
+    .getElementById("otrok")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("ucitelj")
+    .classList.add("hidden");
+
+}
+
+
+function pokaziUcitelja() {
+
+  document
+    .getElementById("otrok")
+    .classList.add("hidden");
+
+  document
+    .getElementById("ucitelj")
+    .classList.remove("hidden");
+
+}
+
+
+function obarvajBD(text) {
+
+  text = text.replace(
+    /b/g,
+    '<span class="b">b</span>'
+  );
+
+  text = text.replace(
+    /B/g,
+    '<span class="b">B</span>'
+  );
+
+  text = text.replace(
+    /d/g,
+    '<span class="d">d</span>'
+  );
+
+  text = text.replace(
+    /D/g,
+    '<span class="d">D</span>'
+  );
+
+  return text;
+}
+
+
+function posodobiBesedilo() {
+
+  const text =
+    document.getElementById("inputBesedilo").value;
+
+  const size =
+    document.getElementById("fontSize").value;
+
+  const line =
+    document.getElementById("lineHeight").value;
+
+  const font =
+    document.getElementById("fontFamily").value;
+
+  const background =
+    document.getElementById("background").value;
+
+  const mark =
+    document.getElementById("markBD").checked;
+
+
+  const otrok =
+    document.getElementById("bralnoBesedilo");
+
+
+  otrok.style.fontSize =
+    size + "px";
+
+  otrok.style.lineHeight =
+    line;
+
+  otrok.style.fontFamily =
+    font;
+
+  otrok.style.background =
+    background;
+
+
+  let prikaz =
+    text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+
+  if (mark) {
+
+    prikaz =
+      obarvajBD(prikaz);
+
+  }
+
+
+  otrok.innerHTML =
+    prikaz;
+
+
+  pripraviKlikljiveBesede();
+
+}
+
+
+function pripraviKlikljiveBesede() {
+
+  const text =
+    document.getElementById("inputBesedilo").value;
+
+  const container =
+    document.getElementById("klikljiveBesede");
+
+
+  container.innerHTML = "";
+
+
+  const deli =
+    text.split(/(\s+)/);
+
+
+  deli.forEach(del => {
+
+    if (/^\s+$/.test(del)) {
+
+      container.appendChild(
+        document.createTextNode(del)
+      );
+
+      return;
+
+    }
+
+
+    const span =
+      document.createElement("span");
+
+
+    span.className =
+      "beseda";
+
+
+    span.textContent =
+      del;
+
+
+    span.onclick =
+      function() {
+
+        izbranaBeseda =
+          del;
+
+        izbraniElement =
+          span;
+
+
+        document
+          .getElementById("selectedWord")
+          .textContent =
+          "Beseda: " + del;
+
+
+        document
+          .getElementById("wrongReading")
+          .value =
+          "";
+
+
+        document
+          .getElementById("errorBox")
+          .classList.remove("hidden");
+
+      };
+
+
+    container.appendChild(span);
+
+  });
+
+}
+
+
+function shraniNapako() {
+
+  const type =
+    document.getElementById("errorType").value;
+
+  const wrong =
+    document.getElementById("wrongReading").value;
+
+
+  napake.push({
+
+    beseda:
+      izbranaBeseda,
+
+    tip:
+      type,
+
+    napacno:
+      wrong
+
+  });
+
+
+  if (izbraniElement) {
+
+    izbraniElement.classList.add(
+      "napaka"
+    );
+
+  }
+
+
+  prikaziNapake();
+
+  zapriNapako();
+
+}
+
+
+function prikaziNapake() {
+
+  const list =
+    document.getElementById("errorsList");
+
+
+  if (napake.length === 0) {
+
+    list.innerHTML =
+      "Ni zabeleženih napak.";
+
+    return;
+
+  }
+
+
+  list.innerHTML = "";
+
+
+  napake.forEach(n => {
+
+    const div =
+      document.createElement("div");
+
+
+    div.className =
+      "errorItem";
+
+
+    let text =
+      n.beseda +
+      " — " +
+      n.tip;
+
+
+    if (n.napacno) {
+
+      text +=
+        " → otrok je prebral: " +
+        n.napacno;
+
+    }
+
+
+    div.textContent =
+      text;
+
+
+    list.appendChild(div);
+
+  });
+
+}
+
+
+function zapriNapako() {
+
+  document
+    .getElementById("errorBox")
+    .classList.add("hidden");
+
+}
+
+
+document
+  .getElementById("fontSize")
+  .addEventListener(
+    "input",
+    function() {
+
+      document
+        .getElementById("fontValue")
+        .textContent =
+        this.value + " px";
+
+    }
+  );
+
+
+document
+  .getElementById("lineHeight")
+  .addEventListener(
+    "input",
+    function() {
+
+      document
+        .getElementById("lineValue")
+        .textContent =
+        this.value;
+
+    }
+  );
+
+
+posodobiBesedilo();
+
+</script>
+
+</body>
+</html>
