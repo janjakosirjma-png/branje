@@ -1,699 +1,2543 @@
 <!DOCTYPE html>
 <html lang="sl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bralna aplikacija</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    * { box-sizing: border-box; }
+<title>Bralna aplikacija</title>
 
-    body {
-      margin: 0;
-      font-family: Calibri, Arial, sans-serif;
-      background: #f4f6f8;
-      color: #222;
-    }
+<!-- OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-    header {
-      background: white;
-      border-bottom: 1px solid #ddd;
-      padding: 18px 24px;
-    }
+<!-- Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    header h1 {
-      margin: 0;
-      font-size: 24px;
-    }
+<style>
 
-    .container {
-      max-width: 1180px;
-      margin: 24px auto;
-      padding: 0 18px;
-    }
+* {
+    box-sizing: border-box;
+}
 
-    .start-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
+body {
+    margin: 0;
+    font-family: Calibri, Arial, sans-serif;
+    background: #f4f6f8;
+    color: #1f2937;
+}
 
-    .panel {
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 14px;
-      padding: 20px;
-    }
+header {
+    background: #ffffff;
+    border-bottom: 1px solid #d1d5db;
+    padding: 18px 24px;
+}
 
-    button,
-    textarea,
-    select,
-    input {
-      font: inherit;
-    }
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
 
-    button {
-      cursor: pointer;
-      border-radius: 9px;
-      border: 1px solid transparent;
-      padding: 10px 16px;
-      min-height: 44px;
-    }
+.container {
+    max-width: 1250px;
+    margin: 25px auto;
+    padding: 0 18px;
+}
 
-    .primary {
-      background: #2f65d9;
-      color: white;
-    }
+.hidden {
+    display: none !important;
+}
 
-    .secondary {
-      background: white;
-      border-color: #bbb;
-      color: #222;
-    }
+.panel {
+    background: white;
+    border: 1px solid #d8dde5;
+    border-radius: 14px;
+    padding: 20px;
+}
 
-    .active-mode {
-      background: #111827;
-      color: white;
-    }
+.start-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 20px;
+}
 
-    textarea,
-    select,
-    input {
-      width: 100%;
-      border: 1px solid #bbb;
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 6px;
-    }
+.teacher-grid {
+    display: grid;
+    grid-template-columns: 350px minmax(0,1fr);
+    gap: 20px;
+}
 
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-    }
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
 
-    label {
-      display: block;
-      margin-top: 14px;
-      font-weight: bold;
-    }
+button {
+    border: 0;
+    border-radius: 9px;
+    padding: 10px 16px;
+    cursor: pointer;
+    min-height: 43px;
+}
 
-    .hidden {
-      display: none !important;
+.primary {
+    background: #245bc4;
+    color: white;
+}
+
+.secondary {
+    background: white;
+    border: 1px solid #aeb6c3;
+    color: #222;
+}
+
+.warning {
+    background: #fff7d6;
+    border: 1px solid #e4c65c;
+}
+
+.active-mode {
+    background: #111827;
+    color: white;
+}
+
+.danger {
+    background: #b91c1c;
+    color: white;
+}
+
+label {
+    display: block;
+    margin-top: 14px;
+    font-weight: bold;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid #b8c0cc;
+    border-radius: 8px;
+}
+
+textarea {
+    min-height: 170px;
+    resize: vertical;
+}
+
+input[type="checkbox"] {
+    width: auto;
+}
+
+input[type="range"] {
+    padding: 0;
+}
+
+.note {
+    font-size: 14px;
+    color: #667085;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.preview {
+    max-width: 100%;
+    max-height: 260px;
+    margin-top: 12px;
+    border-radius: 8px;
+}
+
+.ocr-status {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #245bc4;
+}
+
+.child-reading {
+    min-height: 450px;
+    background: white;
+    border-radius: 16px;
+    padding: 35px;
+    white-space: pre-wrap;
+    font-size: 24px;
+    line-height: 1.7;
+}
+
+.b-letter {
+    color: green;
+    font-weight: bold;
+}
+
+.d-letter {
+    color: red;
+    font-weight: bold;
+}
+
+.teacher-text {
+    font-size: 21px;
+    line-height: 2.15;
+}
+
+.word {
+    display: inline;
+    padding: 3px 4px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.word:hover {
+    background: #edf3ff;
+}
+
+/* hitra oznaka napake */
+.word.pending-error {
+    background: #fff1a8;
+}
+
+/* napaka že razvrščena */
+.word.error {
+    background: #ffd6d6;
+}
+
+/* samopopravek */
+.word.self-correction {
+    background: #ddf6df;
+}
+
+/* zadnja beseda */
+.word.last-read {
+    outline: 3px solid #2563eb;
+    background: #dbeafe;
+}
+
+/* besede, ki jih je otrok dosegel */
+.word.read-range {
+    text-decoration: underline;
+    text-decoration-color: #d7dde6;
+    text-underline-offset: 5px;
+}
+
+.mode-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.timer-box {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    padding: 15px;
+    border-radius: 12px;
+    background: #f4f7fb;
+    margin-bottom: 16px;
+}
+
+.timer {
+    font-size: 34px;
+    font-weight: bold;
+    min-width: 100px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.stat {
+    border: 1px solid #d8dde5;
+    border-radius: 10px;
+    background: #fafbfc;
+    padding: 12px;
+}
+
+.stat strong {
+    display: block;
+    font-size: 25px;
+    margin-top: 5px;
+}
+
+.result-box {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #eef4ff;
+}
+
+.error-box {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f8fafc;
+    border: 1px solid #d8dde5;
+    border-radius: 12px;
+}
+
+.error-item {
+    border-bottom: 1px dashed #ccd2da;
+    padding: 8px 0;
+}
+
+.section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #d8dde5;
+}
+
+.small-button {
+    padding: 5px 9px;
+    min-height: 30px;
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+@media(max-width:850px) {
+
+    .start-grid,
+    .teacher-grid,
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 
     .toolbar {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .child-reading {
-      background: white;
-      border-radius: 16px;
-      padding: 34px;
-      min-height: 360px;
-      white-space: pre-wrap;
-      font-size: 24px;
-      line-height: 1.7;
-    }
-
-    .b {
-      color: green;
-      font-weight: bold;
-    }
-
-    .d {
-      color: red;
-      font-weight: bold;
-    }
-
-    .teacher-grid {
-      display: grid;
-      grid-template-columns: 340px minmax(0, 1fr);
-      gap: 18px;
-    }
-
-    .clickable-text {
-      font-size: 21px;
-      line-height: 2;
-    }
-
-    .word {
-      display: inline;
-      padding: 2px 4px;
-      margin: 1px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .word:hover {
-      background: #eef3ff;
-    }
-
-    .word.error {
-      background: #ffe0e0;
-    }
-
-    .word.last-read {
-      background: #dbeafe;
-      outline: 2px solid #2563eb;
-    }
-
-    .word.read-range {
-      text-decoration: underline;
-      text-decoration-color: #cbd5e1;
-      text-underline-offset: 4px;
-    }
-
-    .mode-box {
-      margin: 16px 0;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .error-box {
-      margin-top: 22px;
-      padding-top: 18px;
-      border-top: 1px solid #ddd;
-    }
-
-    .summary {
-      margin-top: 24px;
-      padding-top: 18px;
-      border-top: 1px solid #ddd;
-    }
-
-    .error-item {
-      padding: 8px 0;
-      border-bottom: 1px dashed #ddd;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .stat {
-      background: #f8fafc;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 12px;
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 24px;
-      margin-top: 4px;
-    }
-
-    .note {
-      color: #666;
-      font-size: 14px;
-    }
-
-    @media (max-width: 800px) {
-      .start-grid,
-      .teacher-grid,
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .toolbar {
-        align-items: flex-start;
         flex-direction: column;
-      }
     }
-  </style>
+
+}
+
+</style>
 </head>
 
 <body>
 
 <header>
-  <h1>Bralna aplikacija</h1>
+    <h1>Bralna aplikacija</h1>
 </header>
 
 <div class="container">
 
-  <section id="startScreen">
+<!-- ================= START ================= -->
+
+<section id="startScreen">
+
     <div class="start-grid">
 
-      <div class="panel">
-        <h2>Otroški pogled</h2>
-        <p>Za prikaz prilagojenega besedila za branje.</p>
-        <button class="primary" onclick="odpriOtroka()">Odpri otroški pogled</button>
-      </div>
+        <div class="panel">
+            <h2>Otroški pogled</h2>
 
-      <div class="panel">
-        <h2>Pogled učitelja</h2>
-        <p>Za sprotno beleženje napak in rezultatov branja.</p>
-        <button class="primary" onclick="odpriUcitelja()">Odpri pogled učitelja</button>
-      </div>
+            <p>
+                Priprava besedila za lažje in preglednejše branje.
+            </p>
+
+            <button class="primary" onclick="odpriOtroka()">
+                Odpri otroški pogled
+            </button>
+        </div>
+
+
+        <div class="panel">
+            <h2>Pogled učitelja</h2>
+
+            <p>
+                Spremljanje branja, beleženje napak, tekočnosti in rezultatov.
+            </p>
+
+            <button class="primary" onclick="odpriUcitelja()">
+                Odpri pogled učitelja
+            </button>
+        </div>
 
     </div>
-  </section>
 
-  <section id="childView" class="hidden">
+</section>
 
-    <div class="toolbar">
-      <div>
+
+<!-- ================= OTROK ================= -->
+
+<section id="childView" class="hidden">
+
+<div class="toolbar">
+
+    <div>
         <strong>Otroški pogled</strong>
-        <div class="note">Besedilo lahko prilagodiš pred začetkom branja.</div>
-      </div>
-
-      <button class="secondary" onclick="nazaj()">Nazaj</button>
+        <div class="note">
+            Fotografiraj besedilo ali ga vnesi ročno.
+        </div>
     </div>
 
-    <div class="teacher-grid">
-
-      <div class="panel">
-        <h3>Priprava besedila</h3>
-
-        <label>Besedilo</label>
-        <textarea id="childInput">Danes bomo odšli na dolg sprehod. Na poti bomo opazovali drevesa, ptice in drobne cvetlice.</textarea>
-
-        <label>
-          Velikost pisave:
-          <span id="childFontValue">24 px</span>
-        </label>
-        <input id="childFontSize" type="range" min="16" max="42" value="24">
-
-        <label>
-          Razmik med vrsticami:
-          <span id="childLineValue">1.7</span>
-        </label>
-        <input id="childLineHeight" type="range" min="1.2" max="2.4" step="0.1" value="1.7">
-
-        <label>Pisava</label>
-        <select id="childFontFamily">
-          <option value="Calibri, Arial, sans-serif">Calibri</option>
-          <option value="Arial, sans-serif">Arial</option>
-          <option value="Verdana, sans-serif">Verdana</option>
-          <option value="Georgia, serif">Georgia</option>
-        </select>
-
-        <label>Ozadje</label>
-        <select id="childBackground">
-          <option value="#ffffff">Belo</option>
-          <option value="#fffcec">Rahlo rumenkasto</option>
-          <option value="#f3f7ff">Rahlo modrikasto</option>
-          <option value="#f3f3f3">Svetlo sivo</option>
-        </select>
-
-        <label>
-          <input id="childMarkBD" type="checkbox" checked style="width:auto;">
-          Obarvaj b zeleno in d rdeče
-        </label>
-
-        <br><br>
-
-        <button class="primary" onclick="pripraviOtrokovoBesedilo()">
-          Pripravi za branje
-        </button>
-      </div>
-
-      <div>
-        <div id="childReadingText" class="child-reading"></div>
-      </div>
-
-    </div>
-  </section>
-
-  <section id="teacherView" class="hidden">
-
-    <div class="toolbar">
-      <div>
-        <strong>Pogled učitelja</strong>
-        <div class="note">Klikni besede med branjem in na koncu označi zadnjo prebrano besedo.</div>
-      </div>
-
-      <button class="secondary" onclick="nazaj()">Nazaj</button>
-    </div>
-
-    <div class="teacher-grid">
-
-      <div class="panel">
-        <h3>Priprava besedila</h3>
-
-        <label>Besedilo</label>
-        <textarea id="teacherInput">Danes bomo odšli na dolg sprehod. Na poti bomo opazovali drevesa, ptice in drobne cvetlice.</textarea>
-
-        <br><br>
-
-        <button class="primary" onclick="pripraviUciteljevoBesedilo()">
-          Pripravi spremljanje
-        </button>
-      </div>
-
-      <div class="panel">
-
-        <h3>Beleženje branja</h3>
-
-        <div class="mode-box">
-          <button id="errorModeBtn" class="active-mode" onclick="nastaviNacin('napaka')">
-            Beleži napako
-          </button>
-
-          <button id="lastWordModeBtn" class="secondary" onclick="nastaviNacin('zadnja')">
-            Označi zadnjo prebrano besedo
-          </button>
-        </div>
-
-        <p id="modeHint" class="note">
-          Klikni besedo, pri kateri je otrok naredil napako.
-        </p>
-
-        <div id="teacherText" class="clickable-text"></div>
-
-        <div id="errorBox" class="error-box hidden">
-          <h3 id="selectedWordTitle"></h3>
-
-          <label>Vrsta napake</label>
-          <select id="errorType">
-            <option value="menjava črk">Menjava črk</option>
-            <option value="izpust">Izpust</option>
-            <option value="dodajanje">Dodajanje</option>
-            <option value="zamenjan vrstni red">Zamenjan vrstni red</option>
-            <option value="nepovezano / zlogovano">Nepovezano / zlogovano</option>
-            <option value="zastoj">Zastoj</option>
-            <option value="samopopravek">Samopopravek</option>
-            <option value="drugo">Drugo</option>
-          </select>
-
-          <label>Otrok je prebral</label>
-          <input id="wrongReading" placeholder="npr. bober">
-
-          <br><br>
-
-          <button class="primary" onclick="shraniNapako()">Shrani</button>
-          <button class="secondary" onclick="zapriNapako()">Prekliči</button>
-        </div>
-
-        <div class="summary">
-          <h3>Rezultat branja</h3>
-
-          <div class="stats-grid">
-            <div class="stat">
-              Prebrane besede
-              <strong id="totalRead">0</strong>
-            </div>
-
-            <div class="stat">
-              Napačne
-              <strong id="wrongCount">0</strong>
-            </div>
-
-            <div class="stat">
-              Pravilne
-              <strong id="correctCount">0</strong>
-            </div>
-
-            <div class="stat">
-              Pravilnost
-              <strong id="accuracy">0 %</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="summary">
-          <h3>Zabeležene napake</h3>
-          <div id="errorsList">Ni zabeleženih napak.</div>
-        </div>
-
-      </div>
-
-    </div>
-  </section>
+    <button class="secondary" onclick="nazaj()">
+        Nazaj
+    </button>
 
 </div>
 
+
+<div class="teacher-grid">
+
+<div class="panel">
+
+    <h3>1. Besedilo</h3>
+
+    <label>Fotografiraj ali naloži besedilo</label>
+
+    <input
+        type="file"
+        id="childImage"
+        accept="image/*"
+        capture="environment"
+        onchange="prikaziSliko(this,'childPreview')"
+    >
+
+    <img id="childPreview" class="preview hidden">
+
+    <button
+        class="secondary"
+        style="margin-top:10px"
+        onclick="ocrOtrok()"
+    >
+        Prepoznaj besedilo (OCR)
+    </button>
+
+    <div id="childOCRStatus" class="ocr-status"></div>
+
+
+    <label>Prepoznano besedilo</label>
+
+    <textarea id="childInput">
+Danes bomo odšli na dolg sprehod. Na poti bomo opazovali drevesa, ptice in drobne cvetlice.
+    </textarea>
+
+
+    <h3>2. Prilagoditev</h3>
+
+    <label>
+        Velikost pisave:
+        <span id="childFontValue">24 px</span>
+    </label>
+
+    <input
+        id="childFontSize"
+        type="range"
+        min="16"
+        max="44"
+        value="24"
+    >
+
+
+    <label>
+        Razmik med vrsticami:
+        <span id="childLineValue">1.7</span>
+    </label>
+
+    <input
+        id="childLineHeight"
+        type="range"
+        min="1.2"
+        max="2.5"
+        step="0.1"
+        value="1.7"
+    >
+
+
+    <label>Pisava</label>
+
+    <select id="childFontFamily">
+
+        <option value="Calibri, Arial, sans-serif">
+            Calibri
+        </option>
+
+        <option value="Arial, sans-serif">
+            Arial
+        </option>
+
+        <option value="Verdana, sans-serif">
+            Verdana
+        </option>
+
+        <option value="Georgia, serif">
+            Georgia
+        </option>
+
+    </select>
+
+
+    <label>Ozadje</label>
+
+    <select id="childBackground">
+
+        <option value="#ffffff">
+            Belo
+        </option>
+
+        <option value="#fffcec">
+            Rahlo rumenkasto
+        </option>
+
+        <option value="#f3f7ff">
+            Rahlo modrikasto
+        </option>
+
+        <option value="#f2f2f2">
+            Svetlo sivo
+        </option>
+
+    </select>
+
+
+    <label>
+        <input
+            type="checkbox"
+            id="childMarkBD"
+            checked
+        >
+
+        b obarvaj zeleno, d rdeče
+    </label>
+
+    <br>
+
+    <button
+        class="primary"
+        onclick="pripraviOtrokovoBesedilo()"
+    >
+        Pripravi za branje
+    </button>
+
+</div>
+
+
+<div>
+
+    <div
+        id="childReadingText"
+        class="child-reading">
+    </div>
+
+</div>
+
+</div>
+
+</section>
+
+
+
+<!-- ================= UČITELJ ================= -->
+
+<section id="teacherView" class="hidden">
+
+<div class="toolbar">
+
+    <div>
+
+        <strong>Pogled učitelja</strong>
+
+        <div class="note">
+            Med branjem samo klikaj problematične besede.
+        </div>
+
+    </div>
+
+    <button class="secondary" onclick="nazaj()">
+        Nazaj
+    </button>
+
+</div>
+
+
+<div class="teacher-grid">
+
+
+<!-- LEVA STRAN -->
+
+<div class="panel">
+
+<h3>Podatki o meritvi</h3>
+
+
+<label>Učenec / šifra</label>
+
+<input
+    id="studentName"
+    placeholder="npr. Ana ali U01"
+>
+
+
+<label>Razred</label>
+
+<select id="grade">
+
+    <option value="2">
+        2. razred
+    </option>
+
+    <option value="3">
+        3. razred
+    </option>
+
+    <option value="4">
+        4. razred
+    </option>
+
+</select>
+
+
+<label>Obdobje</label>
+
+<select id="period">
+
+    <option value="Jesen">
+        Jesen
+    </option>
+
+    <option value="Pomlad">
+        Pomlad
+    </option>
+
+</select>
+
+
+<div class="section">
+
+<h3>Besedilo</h3>
+
+<label>Fotografiraj ali naloži</label>
+
+<input
+    type="file"
+    id="teacherImage"
+    accept="image/*"
+    capture="environment"
+    onchange="prikaziSliko(this,'teacherPreview')"
+>
+
+<img
+    id="teacherPreview"
+    class="preview hidden"
+>
+
+
+<button
+    class="secondary"
+    style="margin-top:10px"
+    onclick="ocrUcitelj()"
+>
+    Prepoznaj besedilo (OCR)
+</button>
+
+
+<div
+    id="teacherOCRStatus"
+    class="ocr-status">
+</div>
+
+
+<label>Prepoznano besedilo</label>
+
+<textarea id="teacherInput">
+Danes bomo odšli na dolg sprehod. Na poti bomo opazovali drevesa, ptice in drobne cvetlice.
+</textarea>
+
+
+<br><br>
+
+<button
+    class="primary"
+    onclick="pripraviUciteljevoBesedilo()"
+>
+    Pripravi spremljanje
+</button>
+
+</div>
+
+</div>
+
+
+
+<!-- DESNA STRAN -->
+
+<div class="panel">
+
+<h2>Spremljanje branja</h2>
+
+
+<!-- TIMER -->
+
+<div class="timer-box">
+
+    <div>
+
+        <div class="note">
+            Čas branja
+        </div>
+
+        <div
+            id="timer"
+            class="timer">
+            01:00
+        </div>
+
+    </div>
+
+
+    <button
+        class="primary"
+        onclick="startTimer()"
+    >
+        Začni 1 minuto
+    </button>
+
+
+    <button
+        class="secondary"
+        onclick="stopTimer()"
+    >
+        Ustavi
+    </button>
+
+
+    <button
+        class="secondary"
+        onclick="resetTimer()"
+    >
+        Ponastavi
+    </button>
+
+</div>
+
+
+<!-- NAČIN -->
+
+<div class="mode-box">
+
+<button
+    id="errorModeBtn"
+    class="active-mode"
+    onclick="nastaviNacin('napaka')"
+>
+    Beleži napake
+</button>
+
+
+<button
+    id="lastWordModeBtn"
+    class="secondary"
+    onclick="nastaviNacin('zadnja')"
+>
+    Označi zadnjo besedo
+</button>
+
+</div>
+
+
+<p
+    id="modeHint"
+    class="note">
+    Med branjem enkrat klikni problematično besedo.
+</p>
+
+
+<!-- BESEDILO -->
+
+<div
+    id="teacherText"
+    class="teacher-text">
+</div>
+
+
+
+<!-- UREJANJE NAPAKE -->
+
+<div
+    id="errorBox"
+    class="error-box hidden">
+
+    <h3 id="selectedWordTitle">
+    </h3>
+
+    <p class="note">
+        Izberi vrsto napake. To lahko narediš tudi šele po koncu branja.
+    </p>
+
+
+    <label>Vrsta napake</label>
+
+    <select id="errorType">
+
+        <option value="menjava črk">
+            Menjava črk
+        </option>
+
+        <option value="izpust">
+            Izpust
+        </option>
+
+        <option value="dodajanje">
+            Dodajanje
+        </option>
+
+        <option value="zamenjan vrstni red">
+            Zamenjan vrstni red
+        </option>
+
+        <option value="nepovezano / zlogovano">
+            Nepovezano / zlogovano
+        </option>
+
+        <option value="zastoj">
+            Zastoj
+        </option>
+
+        <option value="napačna beseda">
+            Napačna beseda
+        </option>
+
+        <option value="samopopravek">
+            Samopopravek
+        </option>
+
+        <option value="drugo">
+            Drugo
+        </option>
+
+    </select>
+
+
+    <label>
+        Otrok je prebral
+    </label>
+
+    <input
+        id="wrongReading"
+        placeholder="npr. bober"
+    >
+
+
+    <br><br>
+
+
+    <button
+        class="primary"
+        onclick="shraniNapako()"
+    >
+        Shrani
+    </button>
+
+
+    <button
+        class="secondary"
+        onclick="zapriNapako()"
+    >
+        Zapri
+    </button>
+
+
+    <button
+        class="danger"
+        onclick="odstraniNapako()"
+    >
+        Odstrani oznako
+    </button>
+
+</div>
+
+
+
+<!-- REZULTATI -->
+
+<div class="section">
+
+<h2>Rezultat</h2>
+
+
+<div class="stats-grid">
+
+<div class="stat">
+
+    Prebrane besede
+
+    <strong id="totalRead">
+        0
+    </strong>
+
+</div>
+
+
+<div class="stat">
+
+    Napačne
+
+    <strong id="wrongCount">
+        0
+    </strong>
+
+</div>
+
+
+<div class="stat">
+
+    Pravilne
+
+    <strong id="correctCount">
+        0
+    </strong>
+
+</div>
+
+
+<div class="stat">
+
+    PPB
+
+    <strong id="ppbCount">
+        0
+    </strong>
+
+</div>
+
+
+<div class="stat">
+
+    Pravilnost
+
+    <strong id="accuracy">
+        0 %
+    </strong>
+
+</div>
+
+</div>
+
+
+<div
+    id="normResult"
+    class="result-box">
+
+    Za primerjavo z normo najprej izvedi meritev.
+
+</div>
+
+</div>
+
+
+
+<!-- NAPAKE -->
+
+<div class="section">
+
+<h3>Zabeležene napake</h3>
+
+<div id="errorsList">
+    Ni zabeleženih napak.
+</div>
+
+</div>
+
+
+
+<!-- IZVOZ -->
+
+<div class="section">
+
+<h3>Izvoz podatkov</h3>
+
+<p class="note">
+
+    Vsaka meritev se izvozi kot ena vrstica.
+    Vrstice različnih sej lahko nato kopiraš eno pod drugo v skupno Excelovo tabelo.
+
+</p>
+
+<button
+    class="primary"
+    onclick="izvoziExcel()"
+>
+    Izvozi sejo v Excel
+</button>
+
+</div>
+
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+
+
 <script>
-  let napake = [];
-  let izbranaBeseda = "";
-  let izbraniElement = null;
 
-  let nacin = "napaka";
-  let zadnjaPrebrana = -1;
-  let besedniElementi = [];
+/* =====================================================
+   SPLOŠNO
+===================================================== */
 
-  function nazaj() {
-    document.getElementById("startScreen").classList.remove("hidden");
-    document.getElementById("childView").classList.add("hidden");
-    document.getElementById("teacherView").classList.add("hidden");
-  }
+function nazaj() {
 
-  function odpriOtroka() {
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("childView").classList.remove("hidden");
-    document.getElementById("teacherView").classList.add("hidden");
+    document
+        .getElementById("startScreen")
+        .classList.remove("hidden");
+
+    document
+        .getElementById("childView")
+        .classList.add("hidden");
+
+    document
+        .getElementById("teacherView")
+        .classList.add("hidden");
+}
+
+
+function odpriOtroka() {
+
+    document
+        .getElementById("startScreen")
+        .classList.add("hidden");
+
+    document
+        .getElementById("teacherView")
+        .classList.add("hidden");
+
+    document
+        .getElementById("childView")
+        .classList.remove("hidden");
+
     pripraviOtrokovoBesedilo();
-  }
+}
 
-  function odpriUcitelja() {
-    document.getElementById("startScreen").classList.add("hidden");
-    document.getElementById("childView").classList.add("hidden");
-    document.getElementById("teacherView").classList.remove("hidden");
+
+function odpriUcitelja() {
+
+    document
+        .getElementById("startScreen")
+        .classList.add("hidden");
+
+    document
+        .getElementById("childView")
+        .classList.add("hidden");
+
+    document
+        .getElementById("teacherView")
+        .classList.remove("hidden");
+
     pripraviUciteljevoBesedilo();
-  }
+}
 
-  function escapeHtml(text) {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
 
-  function obarvajBD(text) {
-    return text
-      .replace(/b/g, '<span class="b">b</span>')
-      .replace(/B/g, '<span class="b">B</span>')
-      .replace(/d/g, '<span class="d">d</span>')
-      .replace(/D/g, '<span class="d">D</span>');
-  }
 
-  function pripraviOtrokovoBesedilo() {
-    const text = document.getElementById("childInput").value;
-    const size = document.getElementById("childFontSize").value;
-    const line = document.getElementById("childLineHeight").value;
-    const font = document.getElementById("childFontFamily").value;
-    const background = document.getElementById("childBackground").value;
-    const markBD = document.getElementById("childMarkBD").checked;
+/* =====================================================
+   SLIKA
+===================================================== */
 
-    const output = document.getElementById("childReadingText");
+function prikaziSliko(input, previewID) {
 
-    output.style.fontSize = size + "px";
-    output.style.lineHeight = line;
-    output.style.fontFamily = font;
-    output.style.background = background;
+    const file = input.files[0];
 
-    let html = escapeHtml(text);
+    if (!file) return;
 
-    if (markBD) {
-      html = obarvajBD(html);
+    const preview =
+        document.getElementById(previewID);
+
+    preview.src =
+        URL.createObjectURL(file);
+
+    preview.classList.remove("hidden");
+}
+
+
+
+/* =====================================================
+   OCR
+===================================================== */
+
+async function izvediOCR(fileInputID, textID, statusID) {
+
+    const input =
+        document.getElementById(fileInputID);
+
+    const file =
+        input.files[0];
+
+    if (!file) {
+
+        alert("Najprej izberi ali fotografiraj sliko.");
+
+        return;
     }
 
-    output.innerHTML = html;
-  }
 
-  function pripraviUciteljevoBesedilo() {
+    const status =
+        document.getElementById(statusID);
+
+
+    status.textContent =
+        "Prepoznavanje besedila ...";
+
+
+    try {
+
+        const result =
+            await Tesseract.recognize(
+
+                file,
+
+                "slv",
+
+                {
+
+                    logger: m => {
+
+                        if (m.status === "recognizing text") {
+
+                            status.textContent =
+                                "OCR: " +
+                                Math.round(m.progress * 100) +
+                                " %";
+                        }
+
+                    }
+
+                }
+
+            );
+
+
+        document
+            .getElementById(textID)
+            .value =
+            result.data.text.trim();
+
+
+        status.textContent =
+            "OCR končan. Besedilo lahko še popraviš.";
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        status.textContent =
+            "OCR ni uspel. Besedilo lahko vneseš ročno.";
+
+    }
+
+}
+
+
+function ocrOtrok() {
+
+    izvediOCR(
+        "childImage",
+        "childInput",
+        "childOCRStatus"
+    );
+}
+
+
+function ocrUcitelj() {
+
+    izvediOCR(
+        "teacherImage",
+        "teacherInput",
+        "teacherOCRStatus"
+    );
+}
+
+
+
+/* =====================================================
+   OTROŠKI POGLED
+===================================================== */
+
+function escapeHtml(text) {
+
+    return text
+
+        .replace(/&/g,"&amp;")
+
+        .replace(/</g,"&lt;")
+
+        .replace(/>/g,"&gt;");
+}
+
+
+function obarvajBD(text) {
+
+    return text
+
+        .replace(
+            /b/g,
+            '<span class="b-letter">b</span>'
+        )
+
+        .replace(
+            /B/g,
+            '<span class="b-letter">B</span>'
+        )
+
+        .replace(
+            /d/g,
+            '<span class="d-letter">d</span>'
+        )
+
+        .replace(
+            /D/g,
+            '<span class="d-letter">D</span>'
+        );
+}
+
+
+function pripraviOtrokovoBesedilo() {
+
+    const text =
+        document.getElementById("childInput").value;
+
+    const output =
+        document.getElementById("childReadingText");
+
+
+    output.style.fontSize =
+        document.getElementById("childFontSize").value
+        + "px";
+
+
+    output.style.lineHeight =
+        document.getElementById("childLineHeight").value;
+
+
+    output.style.fontFamily =
+        document.getElementById("childFontFamily").value;
+
+
+    output.style.background =
+        document.getElementById("childBackground").value;
+
+
+    let html =
+        escapeHtml(text);
+
+
+    if (
+        document
+            .getElementById("childMarkBD")
+            .checked
+    ) {
+
+        html =
+            obarvajBD(html);
+    }
+
+
+    output.innerHTML =
+        html;
+}
+
+
+
+/* =====================================================
+   UČITELJ – PODATKI
+===================================================== */
+
+let napake = [];
+
+let besedniElementi = [];
+
+let izbraniIndex = null;
+
+let nacin = "napaka";
+
+let zadnjaPrebrana = -1;
+
+
+
+/* =====================================================
+   PRIPRAVA BESEDILA
+===================================================== */
+
+function pripraviUciteljevoBesedilo() {
+
     napake = [];
+
     zadnjaPrebrana = -1;
+
+    izbraniIndex = null;
+
     besedniElementi = [];
 
-    prikaziNapake();
-    izracunajRezultat();
 
-    const text = document.getElementById("teacherInput").value;
-    const container = document.getElementById("teacherText");
+    const text =
+        document.getElementById("teacherInput").value;
+
+
+    const container =
+        document.getElementById("teacherText");
+
 
     container.innerHTML = "";
 
-    const deli = text.split(/(\s+)/);
-    let indexBesede = 0;
+
+    const deli =
+        text.split(/(\s+)/);
+
+
+    let index = 0;
+
 
     deli.forEach(del => {
-      if (/^\s+$/.test(del)) {
-        container.appendChild(document.createTextNode(del));
-        return;
-      }
 
-      const span = document.createElement("span");
-      span.className = "word";
-      span.textContent = del;
-      span.dataset.index = indexBesede;
+        if (/^\s+$/.test(del)) {
 
-      span.addEventListener("click", function() {
-        const index = Number(span.dataset.index);
+            container.appendChild(
+                document.createTextNode(del)
+            );
 
-        if (nacin === "zadnja") {
-          oznaciZadnjoBesedo(index);
-          return;
+            return;
         }
 
-        izbranaBeseda = del;
-        izbraniElement = span;
 
-        document.getElementById("selectedWordTitle").textContent =
-          "Beseda: " + del;
+        const span =
+            document.createElement("span");
 
-        document.getElementById("wrongReading").value = "";
 
-        document
-          .getElementById("errorBox")
-          .classList.remove("hidden");
-      });
+        span.className =
+            "word";
 
-      besedniElementi.push(span);
-      container.appendChild(span);
 
-      indexBesede++;
-    });
-  }
+        span.textContent =
+            del;
 
-  function nastaviNacin(novNacin) {
-    nacin = novNacin;
 
-    const errorBtn = document.getElementById("errorModeBtn");
-    const lastBtn = document.getElementById("lastWordModeBtn");
-    const hint = document.getElementById("modeHint");
+        span.dataset.index =
+            index;
 
-    if (nacin === "napaka") {
-      errorBtn.className = "active-mode";
-      lastBtn.className = "secondary";
 
-      hint.textContent =
-        "Klikni besedo, pri kateri je otrok naredil napako.";
-    } else {
-      errorBtn.className = "secondary";
-      lastBtn.className = "active-mode";
+        span.addEventListener(
+            "click",
+            () => klikBesede(index)
+        );
 
-      hint.textContent =
-        "Klikni zadnjo besedo, do katere je učenec prišel.";
-    }
-  }
 
-  function oznaciZadnjoBesedo(index) {
-    zadnjaPrebrana = index;
+        besedniElementi.push(span);
 
-    besedniElementi.forEach((el, i) => {
-      el.classList.remove("last-read", "read-range");
+        container.appendChild(span);
 
-      if (i <= zadnjaPrebrana) {
-        el.classList.add("read-range");
-      }
+
+        index++;
+
     });
 
-    if (besedniElementi[zadnjaPrebrana]) {
-      besedniElementi[zadnjaPrebrana].classList.add("last-read");
-    }
-
-    izracunajRezultat();
-
-    nastaviNacin("napaka");
-  }
-
-  function shraniNapako() {
-    const tip = document.getElementById("errorType").value;
-    const napacno = document.getElementById("wrongReading").value.trim();
-
-    const index = Number(izbraniElement.dataset.index);
-
-    napake.push({
-      beseda: izbranaBeseda,
-      tip: tip,
-      napacno: napacno,
-      index: index
-    });
-
-    if (izbraniElement) {
-      izbraniElement.classList.add("error");
-    }
 
     prikaziNapake();
-    izracunajRezultat();
-    zapriNapako();
-  }
 
-  function prikaziNapake() {
-    const list = document.getElementById("errorsList");
+    izracunajRezultat();
+
+    resetTimer();
+
+    nastaviNacin("napaka");
+}
+
+
+
+/* =====================================================
+   KLIK BESEDE
+===================================================== */
+
+function klikBesede(index) {
+
+    if (nacin === "zadnja") {
+
+        oznaciZadnjoBesedo(index);
+
+        return;
+    }
+
+
+    const obstojeca =
+        napake.find(n => n.index === index);
+
+
+    /* PRVI KLIK = samo hitra oznaka */
+
+    if (!obstojeca) {
+
+        napake.push({
+
+            index: index,
+
+            beseda:
+                besedniElementi[index].textContent,
+
+            tip: "",
+
+            napacno: ""
+
+        });
+
+
+        besedniElementi[index]
+            .classList.add("pending-error");
+
+
+        prikaziNapake();
+
+        izracunajRezultat();
+
+        return;
+    }
+
+
+    /* DRUGI KLIK = urejanje napake */
+
+    izbraniIndex =
+        index;
+
+
+    document
+        .getElementById("selectedWordTitle")
+        .textContent =
+        "Beseda: " +
+        besedniElementi[index].textContent;
+
+
+    document
+        .getElementById("errorType")
+        .value =
+        obstojeca.tip || "menjava črk";
+
+
+    document
+        .getElementById("wrongReading")
+        .value =
+        obstojeca.napacno || "";
+
+
+    document
+        .getElementById("errorBox")
+        .classList.remove("hidden");
+}
+
+
+
+/* =====================================================
+   SHRANJEVANJE NAPAKE
+===================================================== */
+
+function shraniNapako() {
+
+    if (izbraniIndex === null)
+        return;
+
+
+    const napaka =
+        napake.find(
+            n =>
+            n.index === izbraniIndex
+        );
+
+
+    if (!napaka)
+        return;
+
+
+    napaka.tip =
+        document
+            .getElementById("errorType")
+            .value;
+
+
+    napaka.napacno =
+        document
+            .getElementById("wrongReading")
+            .value
+            .trim();
+
+
+    osveziOznakoNapake(
+        izbraniIndex
+    );
+
+
+    prikaziNapake();
+
+    izracunajRezultat();
+
+    zapriNapako();
+}
+
+
+
+function osveziOznakoNapake(index) {
+
+    const el =
+        besedniElementi[index];
+
+
+    const napaka =
+        napake.find(
+            n => n.index === index
+        );
+
+
+    el.classList.remove(
+        "pending-error",
+        "error",
+        "self-correction"
+    );
+
+
+    if (!napaka)
+        return;
+
+
+    if (!napaka.tip) {
+
+        el.classList.add(
+            "pending-error"
+        );
+
+    }
+
+    else if (
+        napaka.tip ===
+        "samopopravek"
+    ) {
+
+        el.classList.add(
+            "self-correction"
+        );
+
+    }
+
+    else {
+
+        el.classList.add(
+            "error"
+        );
+
+    }
+
+}
+
+
+
+function odstraniNapako() {
+
+    if (izbraniIndex === null)
+        return;
+
+
+    napake =
+        napake.filter(
+            n =>
+            n.index !== izbraniIndex
+        );
+
+
+    besedniElementi[
+        izbraniIndex
+    ].classList.remove(
+        "pending-error",
+        "error",
+        "self-correction"
+    );
+
+
+    prikaziNapake();
+
+    izracunajRezultat();
+
+    zapriNapako();
+}
+
+
+
+function zapriNapako() {
+
+    document
+        .getElementById("errorBox")
+        .classList.add("hidden");
+
+
+    izbraniIndex =
+        null;
+}
+
+
+
+/* =====================================================
+   PRIKAZ NAPAK
+===================================================== */
+
+function prikaziNapake() {
+
+    const list =
+        document.getElementById("errorsList");
+
 
     if (napake.length === 0) {
-      list.innerHTML = "Ni zabeleženih napak.";
-      return;
+
+        list.innerHTML =
+            "Ni zabeleženih napak.";
+
+        return;
     }
+
 
     list.innerHTML = "";
 
+
     napake.forEach(n => {
-      const div = document.createElement("div");
-      div.className = "error-item";
 
-      let text = n.beseda + " — " + n.tip;
+        const div =
+            document.createElement("div");
 
-      if (n.napacno) {
-        text += " → otrok je prebral: " + n.napacno;
-      }
 
-      div.textContent = text;
-      list.appendChild(div);
-    });
-  }
+        div.className =
+            "error-item";
 
-  function izracunajRezultat() {
-    let skupaj = 0;
 
-    if (zadnjaPrebrana >= 0) {
-      skupaj = zadnjaPrebrana + 1;
-    }
+        let text =
+            n.beseda;
 
-    const napakeDoMeje = napake.filter(
-      n => n.index <= zadnjaPrebrana
-    );
 
-    const unikatneNapacneBesede = new Set(
-      napakeDoMeje
-        .filter(n => n.tip !== "samopopravek")
-        .map(n => n.index)
-    );
+        if (!n.tip) {
 
-    const napacne = unikatneNapacneBesede.size;
-    const pravilne = Math.max(0, skupaj - napacne);
+            text +=
+                " — še ni razvrščena";
 
-    let pravilnost = 0;
+        }
 
-    if (skupaj > 0) {
-      pravilnost = Math.round((pravilne / skupaj) * 100);
-    }
+        else {
 
-    document.getElementById("totalRead").textContent = skupaj;
-    document.getElementById("wrongCount").textContent = napacne;
-    document.getElementById("correctCount").textContent = pravilne;
-    document.getElementById("accuracy").textContent = pravilnost + " %";
-  }
+            text +=
+                " — " +
+                n.tip;
 
-  function zapriNapako() {
-    document.getElementById("errorBox").classList.add("hidden");
-  }
+        }
 
-  document
-    .getElementById("childFontSize")
-    .addEventListener("input", function() {
-      document.getElementById("childFontValue").textContent =
-        this.value + " px";
+
+        if (n.napacno) {
+
+            text +=
+                " → " +
+                n.napacno;
+
+        }
+
+
+        div.textContent =
+            text;
+
+
+        list.appendChild(div);
+
     });
 
-  document
-    .getElementById("childLineHeight")
-    .addEventListener("input", function() {
-      document.getElementById("childLineValue").textContent =
+}
+
+
+
+/* =====================================================
+   NAČIN DELA
+===================================================== */
+
+function nastaviNacin(novNacin) {
+
+    nacin =
+        novNacin;
+
+
+    const errorBtn =
+        document.getElementById(
+            "errorModeBtn"
+        );
+
+
+    const lastBtn =
+        document.getElementById(
+            "lastWordModeBtn"
+        );
+
+
+    const hint =
+        document.getElementById(
+            "modeHint"
+        );
+
+
+    if (nacin === "napaka") {
+
+        errorBtn.className =
+            "active-mode";
+
+        lastBtn.className =
+            "secondary";
+
+
+        hint.textContent =
+            "Med branjem enkrat klikni problematično besedo. Drugi klik odpre vrsto napake.";
+
+    }
+
+    else {
+
+        errorBtn.className =
+            "secondary";
+
+        lastBtn.className =
+            "active-mode";
+
+
+        hint.textContent =
+            "Klikni zadnjo besedo, do katere je učenec prišel.";
+
+    }
+
+}
+
+
+
+/* =====================================================
+   ZADNJA PREBRANA BESEDA
+===================================================== */
+
+function oznaciZadnjoBesedo(index) {
+
+    zadnjaPrebrana =
+        index;
+
+
+    besedniElementi.forEach(
+        (el,i) => {
+
+            el.classList.remove(
+                "last-read",
+                "read-range"
+            );
+
+
+            if (
+                i <=
+                zadnjaPrebrana
+            ) {
+
+                el.classList.add(
+                    "read-range"
+                );
+
+            }
+
+        }
+    );
+
+
+    besedniElementi[index]
+        .classList.add(
+            "last-read"
+        );
+
+
+    izracunajRezultat();
+
+
+    nastaviNacin(
+        "napaka"
+    );
+
+}
+
+
+
+/* =====================================================
+   TIMER
+===================================================== */
+
+let timerInterval = null;
+
+let preteceneSekunde = 0;
+
+let timerAktiven = false;
+
+
+
+function startTimer() {
+
+    clearInterval(
+        timerInterval
+    );
+
+
+    preteceneSekunde =
+        0;
+
+
+    timerAktiven =
+        true;
+
+
+    prikaziTimer();
+
+
+    timerInterval =
+        setInterval(() => {
+
+            preteceneSekunde++;
+
+
+            prikaziTimer();
+
+
+            if (
+                preteceneSekunde >= 60
+            ) {
+
+                stopTimer();
+
+
+                nastaviNacin(
+                    "zadnja"
+                );
+
+
+                alert(
+                    "Minuta je končana. Klikni zadnjo besedo, do katere je učenec prišel."
+                );
+
+            }
+
+        },1000);
+
+}
+
+
+
+function stopTimer() {
+
+    clearInterval(
+        timerInterval
+    );
+
+
+    timerAktiven =
+        false;
+
+
+    izracunajRezultat();
+}
+
+
+
+function resetTimer() {
+
+    clearInterval(
+        timerInterval
+    );
+
+
+    timerAktiven =
+        false;
+
+
+    preteceneSekunde =
+        0;
+
+
+    document
+        .getElementById("timer")
+        .textContent =
+        "01:00";
+}
+
+
+
+function prikaziTimer() {
+
+    const remaining =
+        Math.max(
+            0,
+            60 -
+            preteceneSekunde
+        );
+
+
+    document
+        .getElementById("timer")
+        .textContent =
+        "00:" +
+        String(remaining)
+            .padStart(2,"0");
+}
+
+
+
+/* =====================================================
+   NORME
+===================================================== */
+
+const norme = {
+
+2: {
+
+Jesen: {
+90:64,
+84:47,
+75:38,
+50:22,
+25:14,
+16:11,
+10:9
+},
+
+Pomlad: {
+90:95,
+84:80,
+75:66,
+50:49,
+25:39,
+16:33,
+10:29
+}
+
+},
+
+
+3: {
+
+Jesen: {
+90:120,
+84:108,
+75:95,
+50:73,
+25:56,
+16:50,
+10:40
+},
+
+Pomlad: {
+90:121,
+84:109,
+75:101,
+50:81,
+25:62,
+16:56,
+10:53
+}
+
+},
+
+
+4: {
+
+Jesen: {
+90:129,
+84:119,
+75:112,
+50:88,
+25:66,
+16:59,
+10:54
+},
+
+Pomlad: {
+90:135,
+84:131,
+75:123,
+50:103,
+25:88,
+16:82,
+10:67
+}
+
+}
+
+};
+
+
+
+function dolociCentil(
+    ppb,
+    razred,
+    obdobje
+) {
+
+    const tabela =
+        norme[razred][obdobje];
+
+
+    const c =
+        [90,84,75,50,25,16,10];
+
+
+    if (
+        ppb >= tabela[90]
+    ) {
+
+        return "≥ 90. centil";
+    }
+
+
+    for (
+        let i=0;
+        i<c.length-1;
+        i++
+    ) {
+
+        const zg =
+            c[i];
+
+        const sp =
+            c[i+1];
+
+
+        if (
+            ppb < tabela[zg] &&
+            ppb >= tabela[sp]
+        ) {
+
+            return
+                "med " +
+                sp +
+                ". in " +
+                zg +
+                ". centilom";
+        }
+
+    }
+
+
+    return "< 10. centil";
+}
+
+
+
+/* =====================================================
+   REZULTAT
+===================================================== */
+
+function pridobiRezultat() {
+
+    let skupaj =
+        zadnjaPrebrana >= 0
+        ? zadnjaPrebrana + 1
+        : 0;
+
+
+    const napakeDoMeje =
+        napake.filter(
+            n =>
+            n.index <=
+            zadnjaPrebrana
+        );
+
+
+    const napacniIndexi =
+        new Set(
+
+            napakeDoMeje
+
+            .filter(
+                n =>
+                n.tip !==
+                "samopopravek"
+            )
+
+            .map(
+                n => n.index
+            )
+
+        );
+
+
+    const napacne =
+        napacniIndexi.size;
+
+
+    const pravilne =
+        Math.max(
+            0,
+            skupaj -
+            napacne
+        );
+
+
+    let ppb = 0;
+
+
+    /*
+       Pri meritvi 60 sekund:
+       PPB = pravilno prebrane besede.
+
+       Če učitelj ustavi prej:
+       rezultat se preračuna na minuto.
+    */
+
+    if (
+        preteceneSekunde > 0
+    ) {
+
+        ppb =
+            Math.round(
+                pravilne *
+                60 /
+                preteceneSekunde
+            );
+
+    }
+
+
+    const pravilnost =
+        skupaj > 0
+        ?
+        Math.round(
+            pravilne /
+            skupaj *
+            1000
+        ) / 10
+        :
+        0;
+
+
+    return {
+
+        skupaj,
+        napacne,
+        pravilne,
+        ppb,
+        pravilnost,
+        napakeDoMeje
+
+    };
+
+}
+
+
+
+function izracunajRezultat() {
+
+    const r =
+        pridobiRezultat();
+
+
+    document
+        .getElementById(
+            "totalRead"
+        )
+        .textContent =
+        r.skupaj;
+
+
+    document
+        .getElementById(
+            "wrongCount"
+        )
+        .textContent =
+        r.napacne;
+
+
+    document
+        .getElementById(
+            "correctCount"
+        )
+        .textContent =
+        r.pravilne;
+
+
+    document
+        .getElementById(
+            "ppbCount"
+        )
+        .textContent =
+        r.ppb;
+
+
+    document
+        .getElementById(
+            "accuracy"
+        )
+        .textContent =
+        r.pravilnost +
+        " %";
+
+
+    prikaziNormo(
+        r.ppb
+    );
+
+}
+
+
+
+/* =====================================================
+   PRIMERJAVA Z NORMO
+===================================================== */
+
+function prikaziNormo(ppb) {
+
+    const box =
+        document.getElementById(
+            "normResult"
+        );
+
+
+    if (
+        zadnjaPrebrana < 0 ||
+        preteceneSekunde === 0
+    ) {
+
+        box.innerHTML =
+            "Za primerjavo z normo izvedi meritev in označi zadnjo prebrano besedo.";
+
+        return;
+    }
+
+
+    const razred =
+        Number(
+            document
+            .getElementById("grade")
+            .value
+        );
+
+
+    const obdobje =
+        document
+        .getElementById("period")
+        .value;
+
+
+    const mediana =
+        norme[razred][obdobje][50];
+
+
+    const centil =
+        dolociCentil(
+            ppb,
+            razred,
+            obdobje
+        );
+
+
+    box.innerHTML =
+
+        "<strong>PPB: " +
+        ppb +
+        "</strong><br>" +
+
+        razred +
+        ". razred, " +
+        obdobje.toLowerCase() +
+        ": <strong>" +
+        centil +
+        "</strong>.<br>" +
+
+        "Mediana (50. centil): " +
+        mediana +
+        " pravilno prebranih besed/min.";
+
+}
+
+
+
+/* =====================================================
+   EXCEL
+===================================================== */
+
+function izvoziExcel() {
+
+    if (
+        zadnjaPrebrana < 0
+    ) {
+
+        alert(
+            "Najprej označi zadnjo prebrano besedo."
+        );
+
+        return;
+    }
+
+
+    if (
+        preteceneSekunde === 0
+    ) {
+
+        alert(
+            "Najprej izvedi merjenje časa."
+        );
+
+        return;
+    }
+
+
+    const r =
+        pridobiRezultat();
+
+
+    const ucenec =
+        document
+        .getElementById(
+            "studentName"
+        )
+        .value
+        .trim();
+
+
+    const razred =
+        Number(
+            document
+            .getElementById(
+                "grade"
+            )
+            .value
+        );
+
+
+    const obdobje =
+        document
+        .getElementById(
+            "period"
+        )
+        .value;
+
+
+    const mediana =
+        norme[razred][obdobje][50];
+
+
+    const centil =
+        dolociCentil(
+            r.ppb,
+            razred,
+            obdobje
+        );
+
+
+    const tipiNapak =
+        r.napakeDoMeje
+        .map(
+            n => {
+
+                let t =
+                    n.beseda +
+                    " (" +
+                    (
+                        n.tip ||
+                        "nerazvrščena"
+                    );
+
+
+                if (
+                    n.napacno
+                ) {
+
+                    t +=
+                        ": " +
+                        n.napacno;
+
+                }
+
+
+                t += ")";
+
+                return t;
+
+            }
+        )
+        .join("; ");
+
+
+
+    const podatki = [
+
+        [
+
+            "Datum",
+            "Učenec",
+            "Razred",
+            "Obdobje",
+            "Čas (s)",
+            "Prebrane besede",
+            "Napačne besede",
+            "Pravilne besede",
+            "PPB (pravilne/min)",
+            "Pravilnost %",
+            "Centil",
+            "Mediana norme",
+            "Vrste napak / opomba"
+
+        ],
+
+
+        [
+
+            new Date()
+            .toLocaleDateString(
+                "sl-SI"
+            ),
+
+            ucenec,
+
+            razred,
+
+            obdobje,
+
+            preteceneSekunde,
+
+            r.skupaj,
+
+            r.napacne,
+
+            r.pravilne,
+
+            r.ppb,
+
+            r.pravilnost,
+
+            centil,
+
+            mediana,
+
+            tipiNapak
+
+        ]
+
+    ];
+
+
+
+    const ws =
+        XLSX.utils
+        .aoa_to_sheet(
+            podatki
+        );
+
+
+    ws["!cols"] = [
+
+        {wch:12},
+        {wch:20},
+        {wch:10},
+        {wch:12},
+        {wch:10},
+        {wch:18},
+        {wch:18},
+        {wch:18},
+        {wch:20},
+        {wch:14},
+        {wch:22},
+        {wch:16},
+        {wch:50}
+
+    ];
+
+
+
+    const wb =
+        XLSX.utils
+        .book_new();
+
+
+    XLSX.utils
+        .book_append_sheet(
+            wb,
+            ws,
+            "Seja"
+        );
+
+
+    const datum =
+        new Date()
+        .toISOString()
+        .slice(0,10);
+
+
+    const varnoIme =
+        (
+            ucenec ||
+            "ucenec"
+        )
+        .replace(
+            /[^a-zA-Z0-9čšžČŠŽ_-]/g,
+            "_"
+        );
+
+
+    XLSX.writeFile(
+
+        wb,
+
+        "branje_" +
+        varnoIme +
+        "_" +
+        datum +
+        ".xlsx"
+
+    );
+
+}
+
+
+
+/* =====================================================
+   DRSEČI GUMBI
+===================================================== */
+
+document
+.getElementById(
+    "childFontSize"
+)
+.addEventListener(
+    "input",
+    function(){
+
+        document
+        .getElementById(
+            "childFontValue"
+        )
+        .textContent =
+        this.value +
+        " px";
+
+    }
+);
+
+
+document
+.getElementById(
+    "childLineHeight"
+)
+.addEventListener(
+    "input",
+    function(){
+
+        document
+        .getElementById(
+            "childLineValue"
+        )
+        .textContent =
         this.value;
-    });
 
-  pripraviOtrokovoBesedilo();
+    }
+);
+
+
+
+/* začetni prikaz */
+
+pripraviOtrokovoBesedilo();
+
 </script>
 
 </body>
