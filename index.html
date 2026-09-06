@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="sl">
 <head>
@@ -683,7 +684,7 @@ textarea{
 .ocr-mini-button{
     position:absolute;
     top:12px;
-    right:62px;
+    right:112px;
     z-index:10;
     min-height:42px;
     height:42px;
@@ -703,6 +704,34 @@ textarea{
 .ocr-mini-button.hidden{
     display:none!important;
 }
+
+
+
+.gallery-icon{
+ position:absolute;top:12px;right:62px;z-index:10;width:42px;height:42px;min-height:42px;
+ padding:0;border:1px solid #aeb7c4;border-radius:50%;background:#fff;font-size:20px;
+ display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;
+}
+.gallery-icon:hover{background:#f3f6fa}
+
+.crop-modal{
+ position:fixed;inset:0;z-index:20000;background:rgba(17,24,39,.82);
+ display:flex;align-items:center;justify-content:center;padding:12px;
+}
+.crop-modal.hidden{display:none!important}
+.crop-card{
+ width:min(96vw,850px);max-height:96vh;overflow:auto;background:#fff;border-radius:14px;padding:14px;
+ box-shadow:0 18px 60px rgba(0,0,0,.35);
+}
+.crop-card h3{margin:0 0 6px}
+.crop-help{font-size:14px;color:#667085;margin-bottom:10px;line-height:1.4}
+.crop-canvas-wrap{
+ background:#111827;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;
+ max-height:68vh;
+}
+#ocrCropCanvas{display:block;max-width:100%;max-height:68vh;touch-action:none;user-select:none}
+.crop-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.crop-actions button{flex:1;min-width:135px}
 
 </style>
 </head>
@@ -774,8 +803,10 @@ Nazaj
 
 <h3>Nastavitve besedila</h3>
 <textarea id="childInput" class="hidden">Sledi dolgo branje.</textarea>
-<input type="file" id="childImage" class="hidden-file" accept="image/*" capture="environment"
- onchange="prikaziSliko(this,'childPreview'); pokaziOCRGumb('childOCRAction')">
+<input type="file" id="childImage" class="hidden-file" accept="image/*" onclick="this.value=null"
+ onchange="odpriObrezovanjeIzInputa(this,'childImage','childPreview','childOCRAction')">
+<input type="file" id="childCamera" class="hidden-file" accept="image/*" capture="environment" onclick="this.value=null"
+ onchange="odpriObrezovanjeIzInputa(this,'childImage','childPreview','childOCRAction')">
 <img id="childPreview" class="preview hidden">
 <input type="checkbox" id="childPreciseOCR" class="hidden" checked>
 <div id="childOCRStatus" class="ocr-status hidden"></div>
@@ -903,8 +934,10 @@ Preberi posamezno besedo ob kliku
     onclick="rocniOCROtrok()"
 >OCR</button>
 
+<button class="gallery-icon" type="button" title="Izberi sliko iz galerije"
+ aria-label="Izberi sliko iz galerije" onclick="document.getElementById('childImage').click()">🖼️</button>
 <button class="camera-icon" type="button" title="Fotografiraj besedilo"
- aria-label="Fotografiraj besedilo" onclick="document.getElementById('childImage').click()">📷</button>
+ aria-label="Fotografiraj besedilo" onclick="document.getElementById('childCamera').click()">📷</button>
 <div id="childReadingText" class="child-reading editable-reading" contenteditable="true"
  spellcheck="false" data-placeholder="Prilepi ali vpiši besedilo ..."></div>
 </div>
@@ -956,8 +989,10 @@ Preberi posamezno besedo ob kliku
     <p class="note">Besedilo vpiši, prilepi, popravi ali izbriši neposredno v velikem polju. Za fotografiranje uporabi ikono kamere.</p>
 
     <textarea id="teacherInput" class="hidden">Sledi dolgo branje.</textarea>
-    <input type="file" id="teacherImage" class="hidden-file" accept="image/*" capture="environment"
-           onchange="prikaziSliko(this,'teacherPreview'); pokaziOCRGumb('teacherOCRAction')">
+    <input type="file" id="teacherImage" class="hidden-file" accept="image/*" onclick="this.value=null"
+           onchange="odpriObrezovanjeIzInputa(this,'teacherImage','teacherPreview','teacherOCRAction')">
+    <input type="file" id="teacherCamera" class="hidden-file" accept="image/*" capture="environment" onclick="this.value=null"
+           onchange="odpriObrezovanjeIzInputa(this,'teacherImage','teacherPreview','teacherOCRAction')">
     <img id="teacherPreview" class="preview hidden">
     <input type="checkbox" id="teacherPreciseOCR" class="hidden" checked>
     <div id="teacherOCRStatus" class="ocr-status hidden"></div>
@@ -973,9 +1008,12 @@ Preberi posamezno besedo ob kliku
     onclick="rocniOCRUcitelj()"
 >OCR</button>
 
+        <button class="gallery-icon" type="button" title="Izberi sliko iz galerije"
+                aria-label="Izberi sliko iz galerije"
+                onclick="document.getElementById('teacherImage').click()">🖼️</button>
         <button class="camera-icon" type="button" title="Fotografiraj besedilo"
                 aria-label="Fotografiraj besedilo"
-                onclick="document.getElementById('teacherImage').click()">📷</button>
+                onclick="document.getElementById('teacherCamera').click()">📷</button>
         <div id="teacherDirectEditor" class="teacher-text editable-reading" contenteditable="true"
              spellcheck="false" data-placeholder="Prilepi ali vpiši besedilo ...">Sledi dolgo branje.</div>
     </div>
@@ -1061,6 +1099,19 @@ Preberi posamezno besedo ob kliku
 
 </section>
 
+</div>
+
+<div id="ocrCropModal" class="crop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="ocrCropTitle">
+  <div class="crop-card">
+    <h3 id="ocrCropTitle">Obreži fotografijo</h3>
+    <div class="crop-help">S prstom povleci okvir okoli besedila. Okvir lahko premakneš ali prilagodiš z vogali. Za OCR pusti samo besedilo in čim manj robov, senc ter slik.</div>
+    <div class="crop-canvas-wrap"><canvas id="ocrCropCanvas"></canvas></div>
+    <div class="crop-actions">
+      <button class="primary" type="button" onclick="uporabiOCRIzrez()">Uporabi izrez</button>
+      <button class="secondary" type="button" onclick="uporabiCelotnoOCRSliko()">Celotna slika</button>
+      <button class="secondary" type="button" onclick="zapriOCRObrezovanje()">Prekliči</button>
+    </div>
+  </div>
 </div>
 
 
@@ -1252,25 +1303,239 @@ function odpriUcitelja(){
 }
 
 
+
+/* =====================================================
+   OCR – IZBIRA SLIKE IN OBREZOVANJE
+===================================================== */
+
+const __ocrSelectedFiles = Object.create(null);
+let __ocrCropState = null;
+
+function odpriObrezovanjeIzInputa(input,targetInputID,previewID,ocrButtonID){
+    const file = input && input.files ? input.files[0] : null;
+    if(!file){ return; }
+
+    if(file.type && !file.type.startsWith("image/")){
+        alert("Izberi slikovno datoteko (JPG, PNG, WEBP ...).");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => alert("Slike ni bilo mogoče prebrati.");
+    reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => alert("Slike ni bilo mogoče odpreti. Poskusi z drugo fotografijo.");
+        img.onload = () => pripraviOCRObrezovanje(img,file,targetInputID,previewID,ocrButtonID);
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function pripraviOCRObrezovanje(img,file,targetInputID,previewID,ocrButtonID){
+    const modal = document.getElementById("ocrCropModal");
+    const canvas = document.getElementById("ocrCropCanvas");
+    if(!modal || !canvas){ return; }
+
+    const maxW = Math.min(1000, Math.max(320, window.innerWidth - 50));
+    const maxH = Math.min(1000, Math.max(360, window.innerHeight * 0.62));
+    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+    __ocrCropState = {
+        img,file,targetInputID,previewID,ocrButtonID,canvas,
+        rect:{x:canvas.width*0.05,y:canvas.height*0.05,w:canvas.width*0.90,h:canvas.height*0.90},
+        drag:null
+    };
+
+    modal.classList.remove("hidden");
+    narisiOCRObrezovanje();
+}
+
+function narisiOCRObrezovanje(){
+    const s = __ocrCropState;
+    if(!s){ return; }
+    const c=s.canvas, ctx=c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.drawImage(s.img,0,0,c.width,c.height);
+
+    const r=s.rect;
+    ctx.save();
+    ctx.fillStyle="rgba(0,0,0,.48)";
+    ctx.fillRect(0,0,c.width,r.y);
+    ctx.fillRect(0,r.y,r.x,r.h);
+    ctx.fillRect(r.x+r.w,r.y,c.width-(r.x+r.w),r.h);
+    ctx.fillRect(0,r.y+r.h,c.width,c.height-(r.y+r.h));
+    ctx.strokeStyle="#ffffff";
+    ctx.lineWidth=3;
+    ctx.strokeRect(r.x,r.y,r.w,r.h);
+
+    const hs=10;
+    [[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]].forEach(([x,y])=>{
+        ctx.fillStyle="#ffffff";
+        ctx.fillRect(x-hs,y-hs,hs*2,hs*2);
+        ctx.strokeStyle="#172033";
+        ctx.lineWidth=1;
+        ctx.strokeRect(x-hs,y-hs,hs*2,hs*2);
+    });
+    ctx.restore();
+}
+
+function __ocrCropPoint(ev){
+    const c=__ocrCropState.canvas;
+    const b=c.getBoundingClientRect();
+    return {x:(ev.clientX-b.left)*c.width/b.width, y:(ev.clientY-b.top)*c.height/b.height};
+}
+
+function __ocrCropClampRect(r,c){
+    const min=30;
+    r.w=Math.max(min,Math.min(r.w,c.width));
+    r.h=Math.max(min,Math.min(r.h,c.height));
+    r.x=Math.max(0,Math.min(r.x,c.width-r.w));
+    r.y=Math.max(0,Math.min(r.y,c.height-r.h));
+}
+
+function __ocrCropDown(ev){
+    const s=__ocrCropState; if(!s){return;}
+    ev.preventDefault();
+    const p=__ocrCropPoint(ev), r=s.rect, hit=28;
+    const corners={
+        nw:[r.x,r.y], ne:[r.x+r.w,r.y], sw:[r.x,r.y+r.h], se:[r.x+r.w,r.y+r.h]
+    };
+    let mode=null;
+    for(const [k,[x,y]] of Object.entries(corners)){
+        if(Math.hypot(p.x-x,p.y-y)<=hit){ mode=k; break; }
+    }
+    if(!mode && p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h) mode="move";
+    if(!mode) mode="new";
+    s.drag={mode,start:p,orig:{...r}};
+    try{s.canvas.setPointerCapture(ev.pointerId);}catch(e){}
+}
+
+function __ocrCropMove(ev){
+    const s=__ocrCropState; if(!s || !s.drag){return;}
+    ev.preventDefault();
+    const p=__ocrCropPoint(ev), d=s.drag, o=d.orig, c=s.canvas;
+    const dx=p.x-d.start.x, dy=p.y-d.start.y;
+    let r={...s.rect};
+    if(d.mode==="move"){
+        r={x:o.x+dx,y:o.y+dy,w:o.w,h:o.h};
+    }else if(d.mode==="new"){
+        r={x:Math.min(d.start.x,p.x),y:Math.min(d.start.y,p.y),w:Math.abs(p.x-d.start.x),h:Math.abs(p.y-d.start.y)};
+    }else{
+        let x1=o.x,y1=o.y,x2=o.x+o.w,y2=o.y+o.h;
+        if(d.mode.includes("w")) x1=p.x;
+        if(d.mode.includes("e")) x2=p.x;
+        if(d.mode.includes("n")) y1=p.y;
+        if(d.mode.includes("s")) y2=p.y;
+        r={x:Math.min(x1,x2),y:Math.min(y1,y2),w:Math.abs(x2-x1),h:Math.abs(y2-y1)};
+    }
+    __ocrCropClampRect(r,c);
+    s.rect=r;
+    narisiOCRObrezovanje();
+}
+
+function __ocrCropUp(ev){
+    if(__ocrCropState){ __ocrCropState.drag=null; }
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+    const c=document.getElementById("ocrCropCanvas");
+    if(c){
+        c.addEventListener("pointerdown",__ocrCropDown);
+        c.addEventListener("pointermove",__ocrCropMove);
+        c.addEventListener("pointerup",__ocrCropUp);
+        c.addEventListener("pointercancel",__ocrCropUp);
+    }
+});
+
+function __ocrShraniIzbranoSliko(blobOrFile,dataURL){
+    const s=__ocrCropState; if(!s){return;}
+    __ocrSelectedFiles[s.targetInputID]=blobOrFile;
+    const preview=document.getElementById(s.previewID);
+    if(preview){
+        preview.src=dataURL;
+        preview.classList.remove("hidden");
+    }
+    pokaziOCRGumb(s.ocrButtonID);
+    document.getElementById("ocrCropModal").classList.add("hidden");
+    __ocrCropState=null;
+}
+
+function uporabiOCRIzrez(){
+    const s=__ocrCropState; if(!s){return;}
+    const r=s.rect, c=s.canvas;
+    const scaleX=s.img.naturalWidth/c.width;
+    const scaleY=s.img.naturalHeight/c.height;
+    const sx=Math.max(0,Math.round(r.x*scaleX));
+    const sy=Math.max(0,Math.round(r.y*scaleY));
+    const sw=Math.max(1,Math.round(r.w*scaleX));
+    const sh=Math.max(1,Math.round(r.h*scaleY));
+
+    const out=document.createElement("canvas");
+    out.width=sw; out.height=sh;
+    const ctx=out.getContext("2d");
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,sw,sh);
+    ctx.drawImage(s.img,sx,sy,sw,sh,0,0,sw,sh);
+    const dataURL=out.toDataURL("image/jpeg",0.94);
+    out.toBlob(blob=>{
+        if(!blob){ alert("Izreza ni bilo mogoče pripraviti."); return; }
+        __ocrShraniIzbranoSliko(blob,dataURL);
+    },"image/jpeg",0.94);
+}
+
+function uporabiCelotnoOCRSliko(){
+    const s=__ocrCropState; if(!s){return;}
+    const c=document.createElement("canvas");
+    c.width=s.img.naturalWidth; c.height=s.img.naturalHeight;
+    c.getContext("2d").drawImage(s.img,0,0);
+    __ocrShraniIzbranoSliko(s.file,c.toDataURL("image/jpeg",0.92));
+}
+
+function zapriOCRObrezovanje(){
+    const modal=document.getElementById("ocrCropModal");
+    if(modal) modal.classList.add("hidden");
+    __ocrCropState=null;
+}
+
+
 /* =====================================================
    OCR – PRIKAZ SLIKE
 ===================================================== */
 
 function prikaziSliko(input, previewID){
 
-    const file = input.files[0];
+    const file = input && input.files ? input.files[0] : null;
+    const preview = document.getElementById(previewID);
 
-    if(!file){
+    if(!file || !preview){
         return;
     }
 
-    const preview =
-        document.getElementById(previewID);
+    // FileReader je pri lokalno odprti HTML datoteki in na mobilnih
+    // brskalnikih praviloma zanesljivejši za predogled kot object URL.
+    const reader = new FileReader();
 
-    preview.src =
-        URL.createObjectURL(file);
+    reader.onload = function(){
+        preview.onload = function(){
+            preview.classList.remove("hidden");
+        };
 
-    preview.classList.remove("hidden");
+        preview.onerror = function(){
+            preview.classList.add("hidden");
+            alert("Fotografije ni bilo mogoče prikazati. Poskusi z JPG ali PNG sliko.");
+        };
+
+        preview.src = reader.result;
+    };
+
+    reader.onerror = function(){
+        preview.classList.add("hidden");
+        alert("Fotografije ni bilo mogoče prebrati. Poskusi ponovno ali izberi drugo sliko.");
+    };
+
+    reader.readAsDataURL(file);
 }
 
 
@@ -1282,31 +1547,35 @@ function naloziSlikoIzDatoteke(file){
 
     return new Promise((resolve,reject)=>{
 
-        const img =
-            new Image();
+        if(!file){
+            reject(new Error("Fotografija ni bila izbrana."));
+            return;
+        }
 
-        const url =
-            URL.createObjectURL(file);
+        // Uporabimo isti način kot za predogled. Na nekaterih mobilnih
+        // brskalnikih / v vgrajenem ChatGPT predogledu blob: URL iz
+        // URL.createObjectURL(file) odpove, Data URL iz FileReaderja pa deluje.
+        const reader = new FileReader();
 
-        img.onload = function(){
-
-            URL.revokeObjectURL(url);
-
-            resolve(img);
+        reader.onerror = function(){
+            reject(new Error("Datoteke fotografije ni bilo mogoče prebrati."));
         };
 
-        img.onerror = function(){
+        reader.onload = function(){
+            const img = new Image();
 
-            URL.revokeObjectURL(url);
+            img.onload = function(){
+                resolve(img);
+            };
 
-            reject(
-                new Error(
-                    "Slike ni bilo mogoče naložiti."
-                )
-            );
+            img.onerror = function(){
+                reject(new Error("Fotografije ni bilo mogoče odpreti za OCR. Poskusi z JPG ali PNG sliko."));
+            };
+
+            img.src = reader.result;
         };
 
-        img.src = url;
+        reader.readAsDataURL(file);
     });
 }
 
@@ -2087,6 +2356,78 @@ function izostriCanvas(source){
 }
 
 
+
+/* =====================================================
+   OCR – IZRA VNAVA SENČENJA IN ČIŠČENJE ROBOV
+===================================================== */
+
+function izravnajSenceCanvas(grayCanvas){
+    const canvas=document.createElement("canvas");
+    canvas.width=grayCanvas.width;
+    canvas.height=grayCanvas.height;
+    const ctx=canvas.getContext("2d",{willReadFrequently:true});
+    ctx.drawImage(grayCanvas,0,0);
+
+    const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const data=imageData.data;
+    const w=canvas.width, h=canvas.height;
+
+    // Integralna slika lokalne svetlosti. Lokalno ozadje uporabljamo kot
+    // referenco, zato senca postane skoraj bela, temne črke pa ostanejo temne.
+    const integral=new Float64Array((w+1)*(h+1));
+    for(let y=1;y<=h;y++){
+        let row=0;
+        for(let x=1;x<=w;x++){
+            row += data[((y-1)*w+(x-1))*4];
+            integral[y*(w+1)+x]=integral[(y-1)*(w+1)+x]+row;
+        }
+    }
+
+    const radius=Math.max(24,Math.round(Math.min(w,h)/22));
+    for(let y=0;y<h;y++){
+        const y1=Math.max(0,y-radius), y2=Math.min(h-1,y+radius);
+        for(let x=0;x<w;x++){
+            const x1=Math.max(0,x-radius), x2=Math.min(w-1,x+radius);
+            const A=integral[y1*(w+1)+x1];
+            const B=integral[y1*(w+1)+(x2+1)];
+            const C=integral[(y2+1)*(w+1)+x1];
+            const D=integral[(y2+1)*(w+1)+(x2+1)];
+            const area=(x2-x1+1)*(y2-y1+1);
+            const bg=(D-B-C+A)/Math.max(1,area);
+            const i=(y*w+x)*4;
+            const g=data[i];
+
+            // Razmerje glede na lokalno ozadje odstrani počasne spremembe
+            // osvetlitve, ne da bi izbrisalo strešice pri Č/Š/Ž.
+            let v=255*(g+12)/Math.max(35,bg+12);
+            v=Math.max(0,Math.min(255,Math.round(v)));
+            data[i]=data[i+1]=data[i+2]=v;
+        }
+    }
+
+    ctx.putImageData(imageData,0,0);
+    return canvas;
+}
+
+function pobeliOCRRobove(source){
+    const canvas=document.createElement("canvas");
+    canvas.width=source.width;
+    canvas.height=source.height;
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(source,0,0);
+
+    // Zelo tanek rob pogosto vsebuje senco knjige, prst ali rob fotografije.
+    // Pobeli samo zunanji ~1.2 %, da ne poseže v dejansko besedilo.
+    const mx=Math.max(2,Math.round(canvas.width*0.012));
+    const my=Math.max(2,Math.round(canvas.height*0.012));
+    ctx.fillStyle="#fff";
+    ctx.fillRect(0,0,canvas.width,my);
+    ctx.fillRect(0,canvas.height-my,canvas.width,my);
+    ctx.fillRect(0,0,mx,canvas.height);
+    ctx.fillRect(canvas.width-mx,0,mx,canvas.height);
+    return canvas;
+}
+
 function narediAdaptivniCrnoBeliCanvas(grayCanvas){
 
     const canvas =
@@ -2391,6 +2732,16 @@ function pocistiOCRBesedilo(text){
             "\n"
         )
 
+        // Beseda, razdeljena samo zaradi konca tiskane vrstice: spo-\nštljiv -> spoštljiv.
+        .replace(
+            /([A-Za-zČŠŽčšž])[-‐‑]\s*\n\s*([a-zčšž])/g,
+            "$1$2"
+        )
+
+        // Tipografske narekovaje in pomišljaje pustimo čitljive.
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+
         .replace(
             /\n{3,}/g,
             "\n\n"
@@ -2400,58 +2751,78 @@ function pocistiOCRBesedilo(text){
 }
 
 
+let __ocrWorker = null;
+let __ocrStatusTarget = null;
+
+async function pridobiOCRWorker(status){
+
+    __ocrStatusTarget = status || null;
+
+    if(__ocrWorker){
+        return __ocrWorker;
+    }
+
+    if(typeof Tesseract === "undefined"){
+        throw new Error("Tesseract.js ni naložen.");
+    }
+
+    __ocrWorker = await Tesseract.createWorker(
+        "slv",
+        1,
+        {
+            logger:m=>{
+                if(
+                    __ocrStatusTarget &&
+                    m.status === "recognizing text"
+                ){
+                    __ocrStatusTarget.textContent =
+                        "OCR – " +
+                        Math.round((m.progress || 0) * 100) +
+                        " %";
+                }
+            },
+            errorHandler:err=>{
+                console.error("Tesseract worker:", err);
+            }
+        }
+    );
+
+    await __ocrWorker.setParameters({
+        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+        preserve_interword_spaces: "1",
+        user_defined_dpi: "300",
+        // Ne omejujemo znakov z whitelistom: slovenski Č/Š/Ž morajo ostati.
+        load_system_dawg: "1",
+        load_freq_dawg: "1"
+    });
+
+    return __ocrWorker;
+}
+
+
 async function izvediEnOCR(
+    worker,
     canvas,
     status,
     oznaka
 ){
 
-    const result =
-        await Tesseract.recognize(
-            canvas,
-            "slv",
-            {
-                logger:m=>{
+    __ocrStatusTarget = status || null;
 
-                    if(
-                        m.status ===
-                        "recognizing text"
-                    ){
+    if(status){
+        status.textContent = oznaka + " – 0 %";
+    }
 
-                        status.textContent =
-                            oznaka +
-                            " – " +
-                            Math.round(
-                                (
-                                    m.progress ||
-                                    0
-                                )
-                                *
-                                100
-                            )
-                            +
-                            " %";
-                    }
-                }
-            }
-        );
+    const result = await worker.recognize(canvas);
 
-    return {
-
-        text:
-            pocistiOCRBesedilo(
-                result.data.text ||
-                ""
-            ),
-
-        confidence:
-            Number(
-                result.data.confidence ||
-                0
-            ),
-
-        score:0
+    const rezultat = {
+        text: pocistiOCRBesedilo(result.data.text || ""),
+        confidence: Number(result.data.confidence || 0),
+        score: 0
     };
+
+    rezultat.score = oceniOCRRezultat(rezultat);
+    return rezultat;
 }
 
 
@@ -2464,242 +2835,152 @@ async function izvediIzboljsaniOCR(
     preciseID
 ){
 
-    const input =
-        document.getElementById(
-            fileInputID
-        );
-
-    const file =
-        input.files[0];
+    const input = document.getElementById(fileInputID);
+    const file = (__ocrSelectedFiles[fileInputID]) || (input && input.files ? input.files[0] : null);
 
     if(!file){
-
-        alert(
-            "Najprej izberi ali fotografiraj sliko."
-        );
-
-        return;
+        alert("Najprej izberi ali fotografiraj sliko.");
+        return false;
     }
 
-    if(
-        typeof Tesseract ===
-        "undefined"
-    ){
-
-        alert(
-            "OCR knjižnica se ni naložila. Preveri internetno povezavo."
-        );
-
-        return;
+    if(typeof Tesseract === "undefined"){
+        alert("OCR knjižnica se ni naložila. Preveri internetno povezavo in ponovno odpri aplikacijo.");
+        return false;
     }
 
-    const status =
-        document.getElementById(
-            statusID
-        );
+    const status = document.getElementById(statusID);
+    const preview = document.getElementById(previewID);
+    const title = document.getElementById(titleID);
+    const preciseEl = document.getElementById(preciseID);
+    const precise = !preciseEl || preciseEl.checked;
 
-    const preview =
-        document.getElementById(
-            previewID
-        );
-
-    const title =
-        document.getElementById(
-            titleID
-        );
-
-    const precise =
-        document.getElementById(
-            preciseID
-        ).checked;
-
-    status.textContent =
-        "Pripravljam fotografijo ...";
+    if(status){
+        status.textContent = "Pripravljam fotografijo ...";
+        status.classList.remove("hidden");
+    }
 
     try{
+        const img = await naloziSlikoIzDatoteke(file);
+        const source = slikaVCanvas(img);
 
-        const img =
-            await naloziSlikoIzDatoteke(
-                file
-            );
+        if(status){
+            status.textContent = "Pripravljam sliko za slovenski OCR ...";
+        }
 
-        const source =
-            slikaVCanvas(
-                img
-            );
+        await new Promise(resolve => setTimeout(resolve, 20));
 
-        status.textContent =
-            "Izboljšujem kontrast in ostrino ...";
+        const gray = narediSivinskiCanvas(source);
+        const shadowFree = izravnajSenceCanvas(gray);
+        const clean = pobeliOCRRobove(shadowFree);
+        const sharp = izostriCanvas(clean);
+        const adaptive = narediAdaptivniCrnoBeliCanvas(clean);
+        const bw = narediCrnoBeliCanvas(clean);
+        const screen = pripraviOCRZaVelikeCrke(pobeliOCRRobove(source));
 
-        await new Promise(
-            resolve =>
-                setTimeout(
-                    resolve,
-                    30
-                )
-        );
+        if(preview){
+            preview.src = sharp.toDataURL("image/png");
+            preview.classList.remove("hidden");
+        }
+        if(title){
+            title.classList.remove("hidden");
+        }
 
-        const gray =
-            narediSivinskiCanvas(
-                source
-            );
+        const worker = await pridobiOCRWorker(status);
 
-        const bw =
-            narediCrnoBeliCanvas(
-                gray
-            );
+        const kandidati = [];
 
-        preview.src =
-            gray.toDataURL(
-                "image/jpeg",
-                0.92
-            );
-
-        preview.classList.remove(
-            "hidden"
-        );
-
-        title.classList.remove(
-            "hidden"
-        );
-
-        let najboljsi;
+        // Prvi prehod je najbolj univerzalen za fotografiran papir.
+        kandidati.push({
+            ime:"izravnana in izostrena slika",
+            canvas:sharp,
+            rezultat:await izvediEnOCR(
+                worker,
+                sharp,
+                status,
+                precise ? "OCR 1/4 – odstranjujem sence" : "OCR"
+            )
+        });
 
         if(precise){
-
-            const prvi =
-                await izvediEnOCR(
-                    gray,
+            kandidati.push({
+                ime:"adaptivno črno-bela slika",
+                canvas:adaptive,
+                rezultat:await izvediEnOCR(
+                    worker,
+                    adaptive,
                     status,
-                    "OCR 1/2 – izboljšana sivinska slika"
-                );
+                    "OCR 2/4 – adaptivni kontrast"
+                )
+            });
 
-            const drugi =
-                await izvediEnOCR(
+            kandidati.push({
+                ime:"črno-bela slika",
+                canvas:bw,
+                rezultat:await izvediEnOCR(
+                    worker,
                     bw,
                     status,
-                    "OCR 2/2 – črno-bela slika"
-                );
-
-            const d1 =
-                prvi.text
-                .replace(
-                    /\s/g,
-                    ""
+                    "OCR 3/4 – črno-bela slika"
                 )
-                .length;
+            });
 
-            const d2 =
-                drugi.text
-                .replace(
-                    /\s/g,
-                    ""
-                )
-                .length;
-
-            if(
-                d1 <
-                d2 * 0.35
-            ){
-
-                najboljsi =
-                    drugi;
-
-                preview.src =
-                    bw.toDataURL(
-                        "image/png"
-                    );
-
-            }else if(
-                d2 <
-                d1 * 0.35
-            ){
-
-                najboljsi =
-                    prvi;
-
-            }else if(
-                drugi.confidence >
-                prvi.confidence + 3
-            ){
-
-                najboljsi =
-                    drugi;
-
-                preview.src =
-                    bw.toDataURL(
-                        "image/png"
-                    );
-
-            }else{
-
-                najboljsi =
-                    prvi;
-            }
-
-        }else{
-
-            najboljsi =
-                await izvediEnOCR(
-                    gray,
+            kandidati.push({
+                ime:"različica za večje/tiskane črke",
+                canvas:screen,
+                rezultat:await izvediEnOCR(
+                    worker,
+                    screen,
                     status,
-                    "OCR"
-                );
-        }
-
-        const textElement =
-            document
-            .getElementById(
-                textID
-            );
-
-        textElement.value =
-            najboljsi.text;
-
-        textElement.dispatchEvent(
-            new Event(
-                "input",
-                {bubbles:true}
-            )
-        );
-
-        const dolzina =
-            najboljsi.text
-            .replace(
-                /\s/g,
-                ""
-            )
-            .length;
-
-        if(
-            dolzina < 10
-        ){
-
-            status.innerHTML =
-                "<strong>OCR je zaznal zelo malo besedila.</strong> "
-                +
-                "Poskusi fotografirati samo list z besedilom, bolj naravnost in brez senc.";
-
-        }else{
-
-            status.innerHTML =
-                "OCR končan. Ocena zanesljivosti: <strong>"
-                +
-                Math.round(
-                    najboljsi.confidence
+                    "OCR 4/4 – tiskane črke"
                 )
-                +
-                " %</strong>. Besedilo pred uporabo preveri.";
+            });
         }
+
+        kandidati.sort((a,b)=>b.rezultat.score-a.rezultat.score);
+        const najboljsiKandidat = kandidati[0];
+        const najboljsi = najboljsiKandidat.rezultat;
+
+        if(preview){
+            preview.src = najboljsiKandidat.canvas.toDataURL("image/png");
+        }
+
+        const textElement = document.getElementById(textID);
+        if(textElement){
+            textElement.value = najboljsi.text;
+            textElement.dispatchEvent(new Event("input", {bubbles:true}));
+        }
+
+        const dolzina = najboljsi.text.replace(/\s/g, "").length;
+
+        if(status){
+            if(dolzina < 10){
+                status.innerHTML =
+                    "<strong>OCR je zaznal zelo malo besedila.</strong> " +
+                    "Poskusi zajeti samo besedilo, telefon drži vzporedno z listom in poskrbi za dobro, enakomerno svetlobo.";
+            }else{
+                status.innerHTML =
+                    "OCR končan. Uporabljena je bila <strong>" +
+                    najboljsiKandidat.ime +
+                    "</strong>. Zanesljivost: <strong>" +
+                    Math.round(najboljsi.confidence) +
+                    " %</strong>. Besedilo pred uporabo preveri.";
+            }
+        }
+
+        return true;
 
     }catch(error){
+        console.error("OCR napaka:", error);
 
-        console.error(
-            error
-        );
+        if(status){
+            const msg = error && error.message ? error.message : String(error || "neznana napaka");
+            status.innerHTML =
+                "<strong>OCR ni uspel.</strong> " +
+                "Napaka: " + escapeHtml(msg) +
+                ". Preveri internetno povezavo in poskusi ponovno.";
+        }
 
-        status.textContent =
-            "OCR ni uspel. Poskusi fotografirati samo stran z besedilom, čim bolj naravnost, brez bleščanja in senc.";
+        return false;
     }
 }
 
