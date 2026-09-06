@@ -445,6 +445,100 @@ textarea{
     color:#294f8c;
 }
 
+
+.smog-visual{
+    margin-top:14px;
+    padding:16px;
+    background:#fff;
+    border:1px solid #d7dde6;
+    border-radius:12px;
+}
+
+.smog-visual-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+}
+
+.smog-visual-title strong{
+    font-size:16px;
+}
+
+.smog-percent{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.smog-bar-wrap{
+    position:relative;
+    height:22px;
+    border-radius:999px;
+    overflow:hidden;
+    background:
+        linear-gradient(
+            to right,
+            #dff3e4 0%,
+            #dff3e4 66.666%,
+            #fff0bf 66.666%,
+            #fff0bf 73.333%,
+            #f8d7d7 73.333%,
+            #f8d7d7 100%
+        );
+    border:1px solid #c9d1dc;
+}
+
+.smog-threshold-line{
+    position:absolute;
+    top:-4px;
+    bottom:-4px;
+    left:66.666%;
+    width:3px;
+    background:#172033;
+    z-index:2;
+}
+
+.smog-marker{
+    position:absolute;
+    top:50%;
+    width:18px;
+    height:18px;
+    border-radius:50%;
+    background:#255bc4;
+    border:3px solid #fff;
+    box-shadow:0 0 0 2px #255bc4;
+    transform:translate(-50%,-50%);
+    z-index:3;
+}
+
+.smog-scale{
+    position:relative;
+    height:28px;
+    margin-top:5px;
+    font-size:12px;
+    color:#667085;
+}
+
+.smog-scale span{
+    position:absolute;
+    transform:translateX(-50%);
+    white-space:nowrap;
+}
+
+.smog-scale .s0{ left:0%; transform:none; }
+.smog-scale .s50{ left:33.333%; }
+.smog-scale .s100{ left:66.666%; font-weight:bold; color:#172033; }
+.smog-scale .s150{ left:100%; transform:translateX(-100%); }
+
+.smog-caption{
+    margin-top:8px;
+    font-size:13px;
+    line-height:1.45;
+    color:#525c6c;
+}
+
 .long-word-list{
     margin-top:10px;
     line-height:1.9;
@@ -767,6 +861,23 @@ Razmik med besedami:
     checked
 >
 b zeleno, d rdeče
+</label>
+
+<label>
+<input
+    type="checkbox"
+    id="childUppercase"
+>
+Pretvori besedilo v VELIKE ČRKE
+</label>
+
+<label>
+<input
+    type="checkbox"
+    id="childWordReader"
+    checked
+>
+Preberi posamezno besedo ob kliku
 </label>
 
 <br>
@@ -2190,6 +2301,20 @@ function pripraviOtrokovoBesedilo(){
         )
         .checked;
 
+    const uppercase =
+        document
+        .getElementById(
+            "childUppercase"
+        )
+        .checked;
+
+    const wordReader =
+        document
+        .getElementById(
+            "childWordReader"
+        )
+        .checked;
+
     output.style.fontSize =
         fontSize +
         "px";
@@ -2274,9 +2399,16 @@ function pripraviOtrokovoBesedilo(){
                 wordSpacing +
                 "px";
 
+            const prikazaniToken =
+                uppercase
+                ?
+                token.toLocaleUpperCase("sl-SI")
+                :
+                token;
+
             let vsebina =
                 escapeHtml(
-                    token
+                    prikazaniToken
                 );
 
             if(markBD){
@@ -2290,10 +2422,103 @@ function pripraviOtrokovoBesedilo(){
             span.innerHTML =
                 vsebina;
 
+            if(wordReader){
+
+                span.title =
+                    "Klikni za poslušanje besede";
+
+                span.setAttribute(
+                    "role",
+                    "button"
+                );
+
+                span.setAttribute(
+                    "tabindex",
+                    "0"
+                );
+
+                const izgovorjava =
+                    () => preberiOtrokovoBesedo(
+                        prikazaniToken
+                    );
+
+                span.addEventListener(
+                    "click",
+                    izgovorjava
+                );
+
+                span.addEventListener(
+                    "keydown",
+                    event => {
+
+                        if(
+                            event.key === "Enter"
+                            ||
+                            event.key === " "
+                        ){
+
+                            event.preventDefault();
+                            izgovorjava();
+                        }
+                    }
+                );
+            }
+
             output.appendChild(
                 span
             );
         }
+    );
+}
+
+
+/* =====================================================
+   OTROŠKI BRALEC POSAMEZNE BESEDE
+===================================================== */
+
+function preberiOtrokovoBesedo(beseda){
+
+    if(
+        !("speechSynthesis" in window)
+        ||
+        typeof SpeechSynthesisUtterance === "undefined"
+    ){
+        alert(
+            "Ta brskalnik ne podpira glasnega branja besed."
+        );
+        return;
+    }
+
+    const cistaBeseda =
+        beseda
+        .replace(
+            /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,
+            ""
+        )
+        .trim();
+
+    if(!cistaBeseda){
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const govor =
+        new SpeechSynthesisUtterance(
+            cistaBeseda
+        );
+
+    govor.lang =
+        "sl-SI";
+
+    govor.rate =
+        0.85;
+
+    govor.pitch =
+        1;
+
+    window.speechSynthesis.speak(
+        govor
     );
 }
 
@@ -2578,6 +2803,29 @@ function prikaziAnalizoBesedila(){
             analiza.delezZahtevnih <=
             meja;
 
+        const relativniOdstotek =
+            meja > 0
+            ?
+            analiza.delezZahtevnih / meja * 100
+            :
+            0;
+
+        const markerPozicija =
+            Math.max(
+                0,
+                Math.min(
+                    100,
+                    relativniOdstotek / 150 * 100
+                )
+            );
+
+        const statusMeje =
+            relativniOdstotek <= 100
+            ?
+            "v priporočenem območju"
+            :
+            "nad priporočeno mejo";
+
         smogHTML = `
         <div class="message ${ustrezno ? "good" : "warning"}">
 
@@ -2613,7 +2861,47 @@ function prikaziAnalizoBesedila(){
             "Delež zahtevnih besed presega priporočeno mejo."
         }
 
+        
+
+        <div class="smog-visual">
+            <div class="smog-visual-title">
+                <div>
+                    <strong>Položaj glede na mejo za ${razred}. razred – ${obdobje}</strong>
+                    <div class="note">
+                        Delež zelo zahtevnih besed: ${analiza.delezZahtevnih.toFixed(1)} %
+                        &nbsp; | &nbsp;
+                        priporočena meja: ${meja} %
+                    </div>
+                </div>
+
+                <div class="smog-percent">
+                    ${relativniOdstotek.toFixed(0)} % meje
+                </div>
+            </div>
+
+            <div class="smog-bar-wrap"
+                 aria-label="Položaj zahtevnosti besedila glede na priporočeno mejo">
+                <div class="smog-threshold-line"></div>
+                <div class="smog-marker"
+                     style="left:${markerPozicija}%"
+                     title="${relativniOdstotek.toFixed(0)} % priporočene meje"></div>
+            </div>
+
+            <div class="smog-scale">
+                <span class="s0">0 %</span>
+                <span class="s50">50 % meje</span>
+                <span class="s100">100 % – meja</span>
+                <span class="s150">150 %+</span>
+            </div>
+
+            <div class="smog-caption">
+                Besedilo je trenutno <strong>${statusMeje}</strong>.
+                100 % pomeni doseženo priporočeno mejo za izbrani razred in obdobje;
+                vrednost nad 100 % pomeni, da je delež zelo zahtevnih besed višji od te meje.
+            </div>
         </div>
+
+</div>
         `;
     }
 
@@ -5777,6 +6065,26 @@ document
 document
     .getElementById(
         "childMarkBD"
+    )
+    .addEventListener(
+        "change",
+        pripraviOtrokovoBesedilo
+    );
+
+
+document
+    .getElementById(
+        "childUppercase"
+    )
+    .addEventListener(
+        "change",
+        pripraviOtrokovoBesedilo
+    );
+
+
+document
+    .getElementById(
+        "childWordReader"
     )
     .addEventListener(
         "change",
