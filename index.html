@@ -679,6 +679,31 @@ textarea{
 .smog-reading-ok{color:#25834f;}
 .smog-reading-bad{color:#c83f3f;}
 
+
+.ocr-mini-button{
+    position:absolute;
+    top:12px;
+    right:62px;
+    z-index:10;
+    min-height:42px;
+    height:42px;
+    padding:0 12px;
+    border:1px solid #aeb7c4;
+    border-radius:21px;
+    background:#fff;
+    color:#172033;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.ocr-mini-button:hover{
+    background:#f3f6fa;
+}
+.ocr-mini-button.hidden{
+    display:none!important;
+}
+
 </style>
 </head>
 
@@ -750,7 +775,7 @@ Nazaj
 <h3>Nastavitve besedila</h3>
 <textarea id="childInput" class="hidden">Sledi dolgo branje.</textarea>
 <input type="file" id="childImage" class="hidden-file" accept="image/*" capture="environment"
- onchange="prikaziSliko(this,'childPreview'); ocrOtrokIzIkone()">
+ onchange="prikaziSliko(this,'childPreview'); pokaziOCRGumb('childOCRAction')">
 <img id="childPreview" class="preview hidden">
 <input type="checkbox" id="childPreciseOCR" class="hidden" checked>
 <div id="childOCRStatus" class="ocr-status hidden"></div>
@@ -860,12 +885,7 @@ Preberi posamezno besedo ob kliku
 
 <br>
 
-<button
-    class="primary"
-    onclick="pripraviOtrokovoBesedilo()"
->
-Pripravi za branje
-</button>
+
 
 </div>
 
@@ -875,6 +895,14 @@ Pripravi za branje
 <div>
 <div class="note" style="margin-bottom:8px">Besedilo vpiši, prilepi, popravi ali izbriši neposredno spodaj.</div>
 <div class="text-editor-wrap">
+<button
+    id="childOCRAction"
+    class="ocr-mini-button hidden"
+    type="button"
+    title="Prepoznaj besedilo na fotografiji"
+    onclick="rocniOCROtrok()"
+>OCR</button>
+
 <button class="camera-icon" type="button" title="Fotografiraj besedilo"
  aria-label="Fotografiraj besedilo" onclick="document.getElementById('childImage').click()">📷</button>
 <div id="childReadingText" class="child-reading editable-reading" contenteditable="true"
@@ -929,7 +957,7 @@ Pripravi za branje
 
     <textarea id="teacherInput" class="hidden">Sledi dolgo branje.</textarea>
     <input type="file" id="teacherImage" class="hidden-file" accept="image/*" capture="environment"
-           onchange="prikaziSliko(this,'teacherPreview'); ocrUciteljIzIkone()">
+           onchange="prikaziSliko(this,'teacherPreview'); pokaziOCRGumb('teacherOCRAction')">
     <img id="teacherPreview" class="preview hidden">
     <input type="checkbox" id="teacherPreciseOCR" class="hidden" checked>
     <div id="teacherOCRStatus" class="ocr-status hidden"></div>
@@ -937,6 +965,14 @@ Pripravi za branje
     <img id="teacherProcessedPreview" class="preview hidden">
 
     <div class="text-editor-wrap">
+<button
+    id="teacherOCRAction"
+    class="ocr-mini-button hidden"
+    type="button"
+    title="Prepoznaj besedilo na fotografiji"
+    onclick="rocniOCRUcitelj()"
+>OCR</button>
+
         <button class="camera-icon" type="button" title="Fotografiraj besedilo"
                 aria-label="Fotografiraj besedilo"
                 onclick="document.getElementById('teacherImage').click()">📷</button>
@@ -2828,35 +2864,286 @@ function sinhronizirajUciteljevEditor(){
 }
 
 
-async function ocrOtrokIzIkone(){
-    const s=document.getElementById("childInlineOCRStatus");
-    if(s) s.textContent="Prepoznavam besedilo ...";
-    await ocrOtrok();
-    pripraviOtrokovoBesedilo();
-    if(s) s.innerHTML=document.getElementById("childOCRStatus").innerHTML;
+
+
+
+
+
+
+function pokaziOCRGumb(id){
+
+    const gumb =
+        document.getElementById(id);
+
+    if(gumb){
+        gumb.classList.remove("hidden");
+    }
 }
 
-async function ocrUciteljIzIkone(){
-    const s = document.getElementById("teacherInlineOCRStatus");
-    if(s) s.textContent = "Prepoznavam besedilo ...";
 
-    await izvediIzboljsaniOCR(
-        "teacherImage",
-        "teacherInput",
-        "teacherOCRStatus",
-        "teacherProcessedPreview",
-        "teacherProcessedTitle",
-        "teacherPreciseOCR"
-    );
+async function rocniOCROtrok(){
 
-    const editor = document.getElementById("teacherDirectEditor");
-    const input = document.getElementById("teacherInput");
-    if(editor && input) editor.innerText = input.value;
+    const status =
+        document.getElementById(
+            "childInlineOCRStatus"
+        );
 
-    pripraviUciteljevoBesedilo();
-    prikaziAnalizoBesedila();
+    const gumb =
+        document.getElementById(
+            "childOCRAction"
+        );
 
-    if(s) s.innerHTML = document.getElementById("teacherOCRStatus").innerHTML;
+    if(gumb){
+        gumb.disabled = true;
+        gumb.textContent = "...";
+    }
+
+    if(status){
+        status.textContent =
+            "Prepoznavam besedilo ...";
+    }
+
+    try{
+
+        await izvediIzboljsaniOCR(
+            "childImage",
+            "childInput",
+            "childOCRStatus",
+            "childProcessedPreview",
+            "childProcessedTitle",
+            "childPreciseOCR"
+        );
+
+        const childInput =
+            document.getElementById(
+                "childInput"
+            );
+
+        if(childInput){
+            childInput.value =
+                normalizirajVelikeCrkeCeJePotrebno(
+                    childInput.value
+                );
+        }
+
+        pripraviOtrokovoBesedilo();
+
+        if(status){
+            status.innerHTML =
+                document
+                .getElementById(
+                    "childOCRStatus"
+                )
+                .innerHTML;
+        }
+
+    }finally{
+
+        if(gumb){
+            gumb.disabled = false;
+            gumb.textContent = "OCR";
+        }
+    }
+}
+
+
+async function rocniOCRUcitelj(){
+
+    const status =
+        document.getElementById(
+            "teacherInlineOCRStatus"
+        );
+
+    const gumb =
+        document.getElementById(
+            "teacherOCRAction"
+        );
+
+    if(gumb){
+        gumb.disabled = true;
+        gumb.textContent = "...";
+    }
+
+    if(status){
+        status.textContent =
+            "Prepoznavam besedilo ...";
+    }
+
+    try{
+
+        await izvediIzboljsaniOCR(
+            "teacherImage",
+            "teacherInput",
+            "teacherOCRStatus",
+            "teacherProcessedPreview",
+            "teacherProcessedTitle",
+            "teacherPreciseOCR"
+        );
+
+        const editor =
+            document.getElementById(
+                "teacherDirectEditor"
+            );
+
+        const input =
+            document.getElementById(
+                "teacherInput"
+            );
+
+        if(input){
+            input.value =
+                normalizirajVelikeCrkeCeJePotrebno(
+                    input.value
+                );
+        }
+
+        if(editor && input){
+            editor.innerText =
+                input.value;
+        }
+
+        pripraviUciteljevoBesedilo();
+        prikaziAnalizoBesedila();
+
+        if(status){
+            status.innerHTML =
+                document
+                .getElementById(
+                    "teacherOCRStatus"
+                )
+                .innerHTML;
+        }
+
+    }finally{
+
+        if(gumb){
+            gumb.disabled = false;
+            gumb.textContent = "OCR";
+        }
+    }
+}
+
+
+
+function pretvoriVelikeVMaleZVelikimiZacetnicami(besedilo){
+
+    if(!besedilo){
+        return "";
+    }
+
+    /*
+       Pretvori besedilo, napisano z VELIKIMI ČRKAMI, v male črke,
+       nato pa ohrani veliko začetnico:
+       - na začetku besedila,
+       - po piki, vprašaju in klicaju,
+       - tudi po zaključnih narekovajih/oklepajih.
+       Uporabljena je slovenska lokalizacija, zato pravilno obravnava Č Š Ž.
+    */
+    let rezultat =
+        besedilo.toLocaleLowerCase(
+            "sl-SI"
+        );
+
+    let novaPoved = true;
+
+    const crka =
+        /[a-zčšž]/i;
+
+    let znaki =
+        Array.from(
+            rezultat
+        );
+
+    for(
+        let i = 0;
+        i < znaki.length;
+        i++
+    ){
+
+        const znak =
+            znaki[i];
+
+        if(
+            novaPoved &&
+            crka.test(
+                znak
+            )
+        ){
+
+            znaki[i] =
+                znak.toLocaleUpperCase(
+                    "sl-SI"
+                );
+
+            novaPoved =
+                false;
+        }
+
+        if(
+            znak === "." ||
+            znak === "!" ||
+            znak === "?"
+        ){
+
+            novaPoved =
+                true;
+        }
+    }
+
+    return znaki.join("");
+}
+
+
+function jeBesediloPreteznoZVelikimiCrkami(besedilo){
+
+    const crke =
+        (
+            besedilo.match(
+                /[A-Za-zČŠŽčšž]/g
+            )
+            ||
+            []
+        );
+
+    if(
+        crke.length <
+        3
+    ){
+        return false;
+    }
+
+    const velike =
+        crke.filter(
+            znak =>
+                znak ===
+                znak.toLocaleUpperCase(
+                    "sl-SI"
+                )
+                &&
+                znak !==
+                znak.toLocaleLowerCase(
+                    "sl-SI"
+                )
+        ).length;
+
+    return (
+        velike /
+        crke.length
+    ) >= 0.8;
+}
+
+
+function normalizirajVelikeCrkeCeJePotrebno(besedilo){
+
+    return jeBesediloPreteznoZVelikimiCrkami(
+        besedilo
+    )
+    ?
+    pretvoriVelikeVMaleZVelikimiZacetnicami(
+        besedilo
+    )
+    :
+    besedilo;
 }
 
 
@@ -6780,7 +7067,78 @@ document
 
 
 document.getElementById("childReadingText").addEventListener("input",sinhronizirajOtrokovEditor);
+
+document.getElementById("childReadingText").addEventListener(
+    "paste",
+    ()=>{
+        setTimeout(
+            ()=>{
+                const editor =
+                    document.getElementById(
+                        "childReadingText"
+                    );
+
+                const trenutno =
+                    tekstIzEditorja(
+                        editor
+                    );
+
+                if(
+                    jeBesediloPreteznoZVelikimiCrkami(
+                        trenutno
+                    )
+                ){
+                    const normalno =
+                        pretvoriVelikeVMaleZVelikimiZacetnicami(
+                            trenutno
+                        );
+
+                    document.getElementById("childInput").value =
+                        normalno;
+
+                    pripraviOtrokovoBesedilo();
+                }
+            },
+            0
+        );
+    }
+);
+
 document.getElementById("teacherDirectEditor").addEventListener("input",sinhronizirajUciteljevEditor);
+
+document.getElementById("teacherDirectEditor").addEventListener(
+    "paste",
+    ()=>{
+        setTimeout(
+            ()=>{
+                const editor =
+                    document.getElementById(
+                        "teacherDirectEditor"
+                    );
+
+                const trenutno =
+                    tekstIzEditorja(
+                        editor
+                    );
+
+                if(
+                    jeBesediloPreteznoZVelikimiCrkami(
+                        trenutno
+                    )
+                ){
+                    editor.innerText =
+                        pretvoriVelikeVMaleZVelikimiZacetnicami(
+                            trenutno
+                        );
+
+                    sinhronizirajUciteljevEditor();
+                }
+            },
+            0
+        );
+    }
+);
+
 
 document
     .getElementById(
