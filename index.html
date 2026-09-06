@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="sl">
 <head>
@@ -462,7 +463,80 @@ textarea{
     line-height:1.45;
 }
 
+/* ZAVIHKI UČITELJSKEGA POGLEDA */
+.teacher-tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:20px;
+    padding:5px;
+    background:#e9edf3;
+    border-radius:12px;
+}
+
+.teacher-tab{
+    flex:1;
+    border:none;
+    background:transparent;
+    color:#475467;
+    font-weight:bold;
+}
+
+.teacher-tab.active{
+    background:#fff;
+    color:#172033;
+    box-shadow:0 1px 4px rgba(0,0,0,.10);
+}
+
+.teacher-tab-page{
+    display:none;
+}
+
+.teacher-tab-page.active{
+    display:block;
+}
+
+.assessment-layout{
+    display:grid;
+    grid-template-columns:minmax(320px,0.9fr) minmax(0,1.1fr);
+    gap:20px;
+}
+
+.compact-meta{
+    display:grid;
+    grid-template-columns:1.3fr .8fr 1fr;
+    gap:10px;
+    margin-bottom:18px;
+}
+
+.compact-meta label{
+    margin-top:0;
+}
+
+.auto-hint{
+    margin-top:10px;
+    padding:10px 12px;
+    background:#eef4ff;
+    border-radius:8px;
+    color:#294f8c;
+    font-size:14px;
+}
+
+.advanced-ocr{
+    margin-top:12px;
+}
+
+.advanced-ocr summary{
+    cursor:pointer;
+    color:#667085;
+    font-size:14px;
+}
+
 @media(max-width:850px){
+    .assessment-layout,
+    .compact-meta{
+        grid-template-columns:1fr;
+    }
+
 
     .start-grid,
     .teacher-grid,
@@ -728,419 +802,164 @@ Pripravi za branje
 <section id="teacherView" class="hidden">
 
 <div class="toolbar">
-
-<div>
-<strong>Pogled učitelja</strong>
-
-<div class="note">
-Najprej pripravi besedilo, nato izvedi merjenje branja.
-</div>
+    <div>
+        <strong>Pogled učitelja</strong>
+        <div class="note">Vnesi ali fotografiraj besedilo, preveri primernost in nato nadaljuj na spremljanje branja.</div>
+    </div>
+    <button class="secondary" onclick="nazaj()">Nazaj</button>
 </div>
 
-<button class="secondary" onclick="nazaj()">
-Nazaj
-</button>
-
+<div class="teacher-tabs" role="tablist" aria-label="Delo z besedilom">
+    <button id="assessmentTabBtn" class="teacher-tab active" type="button" onclick="odpriUciteljskiZavihek('assessment')">Ocena besedila</button>
+    <button id="readingTabBtn" class="teacher-tab" type="button" onclick="odpriUciteljskiZavihek('reading')">Spremljanje branja</button>
 </div>
 
+<!-- 1. ZAVIHEK: OCENA BESEDILA -->
+<div id="teacherAssessmentTab" class="teacher-tab-page active">
 
-<div class="teacher-grid">
+    <div class="compact-meta">
+        <label>Učenec / šifra
+            <input id="studentName" placeholder="npr. Ana ali U01">
+        </label>
 
-<!-- LEVO -->
+        <label>Razred
+            <select id="grade">
+                <option value="2">2. razred</option>
+                <option value="3">3. razred</option>
+                <option value="4">4. razred</option>
+            </select>
+        </label>
 
-<div class="panel">
+        <label>Obdobje
+            <select id="period">
+                <option value="Jesen">Jesen / začetek</option>
+                <option value="Pomlad">Pomlad / konec</option>
+            </select>
+        </label>
+    </div>
 
-<h3>Podatki o meritvi</h3>
+    <div class="assessment-layout">
+        <div class="panel">
+            <h2>Besedilo</h2>
+            <p class="note">Besedilo prilepi neposredno ali ga fotografiraj. Pri fotografiji se OCR zažene samodejno.</p>
 
-<label>Učenec / šifra</label>
+            <label>Fotografiraj ali naloži fotografijo besedila</label>
+            <input
+                type="file"
+                id="teacherImage"
+                accept="image/*"
+                capture="environment"
+                onchange="prikaziSliko(this,'teacherPreview'); ocrUcitelj();"
+            >
 
-<input
-    id="studentName"
-    placeholder="npr. Ana ali U01"
->
+            <img id="teacherPreview" class="preview hidden">
+            <div id="teacherOCRStatus" class="ocr-status"></div>
 
-<label>Razred</label>
+            <details class="advanced-ocr">
+                <summary>Podrobnosti OCR</summary>
+                <div class="ocr-options">
+                    <label>
+                        <input type="checkbox" id="teacherPreciseOCR" checked>
+                        Natančnejši OCR – primerjaj dve obdelavi slike
+                    </label>
+                    <div class="note">Fotografija se pred prepoznavo poveča, pretvori v sivinsko in izboljša.</div>
+                </div>
+                <div id="teacherProcessedTitle" class="ocr-preview-title hidden">Slika, pripravljena za OCR:</div>
+                <img id="teacherProcessedPreview" class="preview hidden">
+            </details>
 
-<select id="grade">
-<option value="2">2. razred</option>
-<option value="3">3. razred</option>
-<option value="4">4. razred</option>
-</select>
+            <label>Besedilo</label>
+            <textarea id="teacherInput" placeholder="Prilepi ali napiši besedilo ...">Sledi dolgo branje.</textarea>
+            <div class="auto-hint">Ocena primernosti se osvežuje samodejno – brez dodatnega potrjevanja.</div>
+        </div>
 
-<label>Obdobje</label>
-
-<select id="period">
-<option value="Jesen">Jesen / začetek</option>
-<option value="Pomlad">Pomlad / konec</option>
-</select>
-
-
-<div class="section">
-
-<h3>Besedilo</h3>
-
-<label>Fotografiraj ali naloži fotografijo besedila</label>
-
-<input
-    type="file"
-    id="teacherImage"
-    accept="image/*"
-    capture="environment"
-    onchange="prikaziSliko(this,'teacherPreview')"
->
-
-<img
-    id="teacherPreview"
-    class="preview hidden"
->
-
-
-<div class="ocr-options">
-
-<strong>Izboljšani OCR</strong>
-
-<label>
-<input
-    type="checkbox"
-    id="teacherPreciseOCR"
-    checked
->
-Natančnejši OCR – primerjaj dve obdelavi slike
-</label>
-
-<div class="note">
-Fotografija se pred prepoznavo poveča, pretvori v sivinsko in izboljša.
+        <div class="panel">
+            <h2>Ocena primernosti besedila</h2>
+            <div id="textAnalysis">Besedilo še ni analizirano.</div>
+        </div>
+    </div>
 </div>
 
-</div>
-
-
-<button
-    class="secondary"
-    style="margin-top:10px"
-    onclick="ocrUcitelj()"
->
-Izboljšaj sliko in prepoznaj besedilo
-</button>
-
-<div
-    id="teacherOCRStatus"
-    class="ocr-status"
-></div>
-
-<div
-    id="teacherProcessedTitle"
-    class="ocr-preview-title hidden"
->
-Slika, pripravljena za OCR:
-</div>
-
-<img
-    id="teacherProcessedPreview"
-    class="preview hidden"
->
-
-
-<label>Prepoznano besedilo – pred meritvijo ga preveri</label>
-
-<textarea id="teacherInput">Sledi dolgo branje.</textarea>
-
-<br><br>
-
-<button
-    class="primary"
-    onclick="pripraviUciteljevoBesedilo()"
->
-Pripravi spremljanje in oceni besedilo
-</button>
-
-</div>
-
-</div>
-
-
-<!-- DESNO -->
-
-<div class="panel">
-
-<h2>Ocena primernosti besedila</h2>
-
-<div id="textAnalysis">
-Besedilo še ni analizirano.
-</div>
-
-
-<div class="section">
-
-<h2>Spremljanje branja</h2>
-
-<div class="timer-box">
-
-<div>
-
-<div class="note">
-Čas branja
-</div>
-
-<div
-    id="timer"
-    class="timer"
->
-00:00
-</div>
-
-</div>
-
-
-<button
-    class="primary"
-    onclick="startTimer()"
->
-Začni merjenje
-</button>
-
-
-<button
-    class="secondary"
-    onclick="stopTimer()"
->
-Ustavi
-</button>
-
-
-<button
-    class="secondary"
-    onclick="resetTimer()"
->
-Ponastavi čas
-</button>
-
-</div>
-
-
-<div class="mode-box">
-
-<button
-    id="errorModeBtn"
-    class="active-mode"
-    onclick="nastaviNacin('napaka')"
->
-Beleži napake
-</button>
-
-<button
-    id="lastWordModeBtn"
-    class="secondary"
-    onclick="nastaviNacin('zadnja')"
->
-Označi zadnjo besedo
-</button>
-
-</div>
-
-
-<p
-    id="modeHint"
-    class="note"
->
-En klik označi problematično besedo. Ponovni klik odpre meni ob besedi.
-Dvojni klik odstrani oznako.
-</p>
-
-
-<div
-    id="teacherText"
-    class="teacher-text"
-></div>
-
-
-<div class="live-box">
-
-<strong>Sprotno:</strong>
-
-problematičnih besed:
-<strong id="liveErrors">0</strong>
-
-&nbsp; | &nbsp;
-
-samopopravkov:
-<strong id="liveSelfCorrections">0</strong>
-
-&nbsp; | &nbsp;
-
-nerazvrščenih:
-<strong id="livePending">0</strong>
-
-</div>
-
-
-<div
-    id="reviewPendingBox"
-    class="review-box hidden"
->
-
-<strong>
-Po branju lahko razvrstiš vse rumeno označene besede.
-</strong>
-
-<br><br>
-
-<button
-    class="secondary"
-    onclick="razvrstiNaslednjoNapako()"
->
-Razvrsti naslednjo neobdelano napako
-</button>
-
-</div>
-
-
-<div class="section">
-
-<h2>Rezultat</h2>
-
-<div class="stats-grid">
-
-<div class="stat">
-Prebrane
-<strong id="totalRead">0</strong>
-</div>
-
-<div class="stat">
-Napačne
-<strong id="wrongCount">0</strong>
-</div>
-
-<div class="stat">
-Pravilne
-<strong id="correctCount">0</strong>
-</div>
-
-<div class="stat">
-PPB
-<strong id="ppbCount">0</strong>
-</div>
-
-<div class="stat">
-Pravilnost
-<strong id="accuracy">0 %</strong>
-</div>
-
-</div>
-
-
-<div
-    id="normResult"
-    class="result-box"
->
-Začni merjenje. Po koncu ustavi timer in označi zadnjo prebrano besedo.
-</div>
-
-</div>
-
-
-<div class="section">
-
-<h3>Zabeležene napake</h3>
-
-<div id="errorsList">
-Ni zabeleženih napak.
-</div>
-
-</div>
-
-
-<div class="section">
-
-<h3>Opazovanja med branjem</h3>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsLostLine"
->
-Izguba vrstice – preskakovanje vrstic, ponovno branje vrstice ali preskakovanje dela besedila
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsRegression"
->
-Regresija – pogosto vračanje na že prebrane besede
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsSlow"
->
-Počasno, zatikajoče ali odrezavo branje
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsSyllabic"
->
-Pogosto zlogovanje oziroma branje brez avtomatizacije
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsPunctuation"
->
-Neupoštevanje ločil
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsIntonation"
->
-Neustrezna ali monotona intonacija
-</label>
-
-<label class="observation-label">
-<input
-    type="checkbox"
-    id="obsComprehension"
->
-Opažene težave pri razumevanju prebranega
-</label>
-
-
-<label>Dodatna opažanja učitelja</label>
-
-<textarea
-    id="teacherObservation"
-    placeholder="Kratka opažanja o načinu branja, strategijah in posebnostih ..."
-></textarea>
-
-</div>
-
-
-<div class="section">
-
-<h3>Izvoz podatkov</h3>
-
-<p class="note">
-Excel vsebuje rezultat meritve, posamezne napake, profil napak,
-SMOG analizo, opazovanja, besedilo in norme.
-</p>
-
-<button
-    class="primary"
-    onclick="izvoziExcel()"
->
-Izvozi vse podatke seje v Excel
-</button>
-
-</div>
-
-</div>
-
+<!-- 2. ZAVIHEK: SPREMLJANJE BRANJA -->
+<div id="teacherReadingTab" class="teacher-tab-page">
+    <div class="panel">
+        <div class="toolbar">
+            <div>
+                <h2 style="margin:0">Spremljanje branja</h2>
+                <div class="note">Uporablja isto besedilo iz zavihka »Ocena besedila«.</div>
+            </div>
+        </div>
+
+        <div class="timer-box">
+            <div>
+                <div class="note">Čas branja</div>
+                <div id="timer" class="timer">00:00</div>
+            </div>
+            <button class="primary" onclick="startTimer()">Začni merjenje</button>
+            <button class="secondary" onclick="stopTimer()">Ustavi</button>
+            <button class="secondary" onclick="resetTimer()">Ponastavi čas</button>
+        </div>
+
+        <div class="mode-box">
+            <button id="errorModeBtn" class="active-mode" onclick="nastaviNacin('napaka')">Beleži napake</button>
+            <button id="lastWordModeBtn" class="secondary" onclick="nastaviNacin('zadnja')">Označi zadnjo besedo</button>
+        </div>
+
+        <p id="modeHint" class="note">En klik označi problematično besedo. Ponovni klik odpre meni ob besedi. Dvojni klik odstrani oznako.</p>
+        <div id="teacherText" class="teacher-text"></div>
+
+        <div class="live-box">
+            <strong>Sprotno:</strong>
+            problematičnih besed: <strong id="liveErrors">0</strong>
+            &nbsp; | &nbsp;
+            samopopravkov: <strong id="liveSelfCorrections">0</strong>
+            &nbsp; | &nbsp;
+            nerazvrščenih: <strong id="livePending">0</strong>
+        </div>
+
+        <div id="reviewPendingBox" class="review-box hidden">
+            <strong>Po branju lahko razvrstiš vse rumeno označene besede.</strong><br><br>
+            <button class="secondary" onclick="razvrstiNaslednjoNapako()">Razvrsti naslednjo neobdelano napako</button>
+        </div>
+
+        <div class="section">
+            <h2>Rezultat</h2>
+            <div class="stats-grid">
+                <div class="stat">Prebrane<strong id="totalRead">0</strong></div>
+                <div class="stat">Napačne<strong id="wrongCount">0</strong></div>
+                <div class="stat">Pravilne<strong id="correctCount">0</strong></div>
+                <div class="stat">PPB<strong id="ppbCount">0</strong></div>
+                <div class="stat">Pravilnost<strong id="accuracy">0 %</strong></div>
+            </div>
+            <div id="normResult" class="result-box">Začni merjenje. Po koncu ustavi timer in označi zadnjo prebrano besedo.</div>
+        </div>
+
+        <div class="section">
+            <h3>Zabeležene napake</h3>
+            <div id="errorsList">Ni zabeleženih napak.</div>
+        </div>
+
+        <div class="section">
+            <h3>Opazovanja med branjem</h3>
+
+            <label class="observation-label"><input type="checkbox" id="obsLostLine">Izguba vrstice – preskakovanje vrstic, ponovno branje vrstice ali preskakovanje dela besedila</label>
+            <label class="observation-label"><input type="checkbox" id="obsRegression">Regresija – pogosto vračanje na že prebrane besede</label>
+            <label class="observation-label"><input type="checkbox" id="obsSlow">Počasno, zatikajoče ali odrezavo branje</label>
+            <label class="observation-label"><input type="checkbox" id="obsSyllabic">Pogosto zlogovanje oziroma branje brez avtomatizacije</label>
+            <label class="observation-label"><input type="checkbox" id="obsPunctuation">Neupoštevanje ločil</label>
+            <label class="observation-label"><input type="checkbox" id="obsIntonation">Neustrezna ali monotona intonacija</label>
+            <label class="observation-label"><input type="checkbox" id="obsComprehension">Opažene težave pri razumevanju prebranega</label>
+
+            <label>Dodatna opažanja učitelja</label>
+            <textarea id="teacherObservation" placeholder="Kratka opažanja o načinu branja, strategijah in posebnostih ..."></textarea>
+        </div>
+
+        <div class="section">
+            <h3>Izvoz podatkov</h3>
+            <p class="note">Excel vsebuje rezultat meritve, posamezne napake, profil napak, SMOG analizo, opazovanja, besedilo in norme.</p>
+            <button class="primary" onclick="izvoziExcel()">Izvozi vse podatke seje v Excel</button>
+        </div>
+    </div>
 </div>
 
 </section>
@@ -1331,7 +1150,8 @@ function odpriUcitelja(){
         .getElementById("teacherView")
         .classList.remove("hidden");
 
-    pripraviUciteljevoBesedilo();
+    odpriUciteljskiZavihek("assessment");
+    prikaziAnalizoBesedila();
 }
 
 
@@ -2146,12 +1966,18 @@ async function izvediIzboljsaniOCR(
                 );
         }
 
-        document
+        const textElement =
+            document
             .getElementById(
                 textID
-            )
-            .value =
+            );
+
+        textElement.value =
             najboljsi.text;
+
+        textElement.dispatchEvent(
+            new Event("input", {bubbles:true})
+        );
 
         status.innerHTML =
             "OCR končan. Ocena zanesljivosti: <strong>"
@@ -3086,6 +2912,60 @@ function pripraviUciteljevoBesedilo(){
     prikaziAnalizoBesedila();
 }
 
+
+/* =====================================================
+   ZAVIHKI UČITELJSKEGA POGLEDA
+===================================================== */
+
+function odpriUciteljskiZavihek(zavihek){
+
+    const assessment =
+        document.getElementById("teacherAssessmentTab");
+
+    const reading =
+        document.getElementById("teacherReadingTab");
+
+    const assessmentBtn =
+        document.getElementById("assessmentTabBtn");
+
+    const readingBtn =
+        document.getElementById("readingTabBtn");
+
+    if(zavihek === "reading"){
+
+        pripraviUciteljevoBesedilo();
+
+        assessment.classList.remove("active");
+        assessmentBtn.classList.remove("active");
+
+        reading.classList.add("active");
+        readingBtn.classList.add("active");
+
+    }else{
+
+        reading.classList.remove("active");
+        readingBtn.classList.remove("active");
+
+        assessment.classList.add("active");
+        assessmentBtn.classList.add("active");
+
+        prikaziAnalizoBesedila();
+    }
+}
+
+let teacherAnalysisTimer = null;
+
+function samodejnoOceniUciteljevoBesedilo(){
+
+    clearTimeout(teacherAnalysisTimer);
+
+    teacherAnalysisTimer = setTimeout(
+        () => {
+            prikaziAnalizoBesedila();
+        },
+        250
+    );
+}
 
 /* =====================================================
    KLIK / DVOJNI KLIK
@@ -5901,6 +5781,14 @@ document
     .addEventListener(
         "change",
         pripraviOtrokovoBesedilo
+    );
+
+
+document
+    .getElementById("teacherInput")
+    .addEventListener(
+        "input",
+        samodejnoOceniUciteljevoBesedilo
     );
 
 
