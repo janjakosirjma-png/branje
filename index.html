@@ -718,7 +718,7 @@ Nazaj
 <h3>Besedilo</h3>
 
 <p class="note">
-Fotografiraj ali naloži besedilo. OCR se zažene samodejno in uporabi izboljšano obdelavo slike.
+Fotografiraj ali naloži besedilo, nato pritisni »Prepoznaj besedilo«. Ta način je stabilnejši pri fotografijah papirja.
 </p>
 
 <label>Fotografiraj ali naloži fotografijo besedila</label>
@@ -728,10 +728,18 @@ Fotografiraj ali naloži besedilo. OCR se zažene samodejno in uporabi izboljša
     id="childImage"
     accept="image/*"
     capture="environment"
-    onchange="prikaziSliko(this,'childPreview'); ocrOtrok();"
+    onchange="prikaziSliko(this,'childPreview')"
 >
 
 <img id="childPreview" class="preview hidden">
+
+<button
+    class="secondary"
+    style="margin-top:10px"
+    onclick="ocrOtrok()"
+>
+Prepoznaj besedilo
+</button>
 
 <div id="childOCRStatus" class="ocr-status"></div>
 
@@ -945,7 +953,7 @@ Pripravi za branje
     <div class="assessment-layout">
         <div class="panel">
             <h2>Besedilo</h2>
-            <p class="note">Besedilo prilepi neposredno ali ga fotografiraj. Pri fotografiji se OCR zažene samodejno.</p>
+            <p class="note">Besedilo prilepi neposredno ali ga fotografiraj. Pri fotografiji nato pritisni »Prepoznaj besedilo«.</p>
 
             <label>Fotografiraj ali naloži fotografijo besedila</label>
             <input
@@ -953,11 +961,19 @@ Pripravi za branje
                 id="teacherImage"
                 accept="image/*"
                 capture="environment"
-                onchange="prikaziSliko(this,'teacherPreview'); ocrUcitelj();"
+                onchange="prikaziSliko(this,'teacherPreview')"
             >
 
             <img id="teacherPreview" class="preview hidden">
-            <div id="teacherOCRStatus" class="ocr-status"></div>
+            <button
+    class="secondary"
+    style="margin-top:10px"
+    onclick="ocrUcitelj()"
+>
+Prepoznaj besedilo
+</button>
+
+<div id="teacherOCRStatus" class="ocr-status"></div>
 
             <details class="advanced-ocr">
                 <summary>Podrobnosti OCR</summary>
@@ -2418,8 +2434,6 @@ async function izvediEnOCR(
             canvas,
             "slv",
             {
-                preserve_interword_spaces:"1",
-                user_defined_dpi:"300",
                 logger:m=>{
 
                     if(
@@ -2553,30 +2567,15 @@ async function izvediIzboljsaniOCR(
                 source
             );
 
-        const sharp =
-            izostriCanvas(
+        const bw =
+            narediCrnoBeliCanvas(
                 gray
             );
 
-        const largeText =
-            pripraviOCRZaVelikeCrke(
-                source
-            );
-
-        const bw =
-            narediCrnoBeliCanvas(
-                sharp
-            );
-
-        const adaptive =
-            narediAdaptivniCrnoBeliCanvas(
-                sharp
-            );
-
         preview.src =
-            sharp.toDataURL(
+            gray.toDataURL(
                 "image/jpeg",
-                0.94
+                0.92
             );
 
         preview.classList.remove(
@@ -2587,88 +2586,89 @@ async function izvediIzboljsaniOCR(
             "hidden"
         );
 
-        let kandidati = [];
+        let najboljsi;
 
         if(precise){
 
-            const obdelave = [
-                {
-                    canvas:largeText,
-                    naziv:"OCR 1/4 – velike črke / zaslon"
-                },
-                {
-                    canvas:sharp,
-                    naziv:"OCR 2/4 – izostrena slika"
-                },
-                {
-                    canvas:bw,
-                    naziv:"OCR 3/4 – črno-bela slika"
-                },
-                {
-                    canvas:adaptive,
-                    naziv:"OCR 4/4 – prilagojena osvetlitev"
-                }
-            ];
+            const prvi =
+                await izvediEnOCR(
+                    gray,
+                    status,
+                    "OCR 1/2 – izboljšana sivinska slika"
+                );
 
-            for(
-                const obdelava of obdelave
+            const drugi =
+                await izvediEnOCR(
+                    bw,
+                    status,
+                    "OCR 2/2 – črno-bela slika"
+                );
+
+            const d1 =
+                prvi.text
+                .replace(
+                    /\s/g,
+                    ""
+                )
+                .length;
+
+            const d2 =
+                drugi.text
+                .replace(
+                    /\s/g,
+                    ""
+                )
+                .length;
+
+            if(
+                d1 <
+                d2 * 0.35
             ){
 
-                const rezultat =
-                    await izvediEnOCR(
-                        obdelava.canvas,
-                        status,
-                        obdelava.naziv
+                najboljsi =
+                    drugi;
+
+                preview.src =
+                    bw.toDataURL(
+                        "image/png"
                     );
 
-                rezultat.canvas =
-                    obdelava.canvas;
+            }else if(
+                d2 <
+                d1 * 0.35
+            ){
 
-                rezultat.score =
-                    oceniOCRRezultat(
-                        rezultat
+                najboljsi =
+                    prvi;
+
+            }else if(
+                drugi.confidence >
+                prvi.confidence + 3
+            ){
+
+                najboljsi =
+                    drugi;
+
+                preview.src =
+                    bw.toDataURL(
+                        "image/png"
                     );
 
-                kandidati.push(
-                    rezultat
-                );
+            }else{
+
+                najboljsi =
+                    prvi;
             }
 
         }else{
 
-            const rezultat =
+            najboljsi =
                 await izvediEnOCR(
-                    sharp,
+                    gray,
                     status,
                     "OCR"
                 );
-
-            rezultat.canvas =
-                sharp;
-
-            rezultat.score =
-                oceniOCRRezultat(
-                    rezultat
-                );
-
-            kandidati.push(
-                rezultat
-            );
         }
-
-        kandidati.sort(
-            (a,b) =>
-                b.score -
-                a.score
-        );
-
-        const najboljsi =
-            kandidati[0];
-
-        preview.src =
-            najboljsi.canvas.toDataURL(
-                "image/png"
-            );
 
         const textElement =
             document
@@ -2706,21 +2706,7 @@ async function izvediIzboljsaniOCR(
         }else{
 
             status.innerHTML =
-                "OCR končan. Izbran je bil najboljši od "
-                +
-                kandidati.length
-                +
-                " poskus"
-                +
-                (
-                    kandidati.length === 1
-                    ?
-                    "a"
-                    :
-                    "ov"
-                )
-                +
-                ". Ocena zanesljivosti: <strong>"
+                "OCR končan. Ocena zanesljivosti: <strong>"
                 +
                 Math.round(
                     najboljsi.confidence
