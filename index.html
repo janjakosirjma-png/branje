@@ -717,6 +717,10 @@ Nazaj
 
 <h3>Besedilo</h3>
 
+<p class="note">
+Fotografiraj ali naloži besedilo. OCR se zažene samodejno in uporabi izboljšano obdelavo slike.
+</p>
+
 <label>Fotografiraj ali naloži fotografijo besedila</label>
 
 <input
@@ -724,56 +728,45 @@ Nazaj
     id="childImage"
     accept="image/*"
     capture="environment"
-    onchange="prikaziSliko(this,'childPreview')"
+    onchange="prikaziSliko(this,'childPreview'); ocrOtrok();"
 >
 
 <img id="childPreview" class="preview hidden">
 
-
-<div class="ocr-options">
-
-<strong>Izboljšani OCR</strong>
-
-<label>
-<input
-    type="checkbox"
-    id="childPreciseOCR"
-    checked
->
-Natančnejši OCR – primerjaj dve obdelavi slike
-</label>
-
-<div class="note">
-Pri fotografiji papirja je natančnejši način priporočljiv.
-</div>
-
-</div>
-
-
-<button
-    class="secondary"
-    style="margin-top:10px"
-    onclick="ocrOtrok()"
->
-Izboljšaj sliko in prepoznaj besedilo
-</button>
-
 <div id="childOCRStatus" class="ocr-status"></div>
 
-<div
-    id="childProcessedTitle"
-    class="ocr-preview-title hidden"
->
-Slika, pripravljena za OCR:
-</div>
+<details class="advanced-ocr">
+    <summary>Podrobnosti OCR</summary>
 
-<img
-    id="childProcessedPreview"
-    class="preview hidden"
->
+    <div class="ocr-options">
+        <label>
+            <input
+                type="checkbox"
+                id="childPreciseOCR"
+                checked
+            >
+            Natančnejši OCR – primerjaj dve obdelavi slike
+        </label>
 
+        <div class="note">
+            Fotografija se pred prepoznavo poveča, pretvori v sivinsko in izboljša.
+        </div>
+    </div>
 
-<label>Prepoznano besedilo – pred uporabo ga preveri</label>
+    <div
+        id="childProcessedTitle"
+        class="ocr-preview-title hidden"
+    >
+        Slika, pripravljena za OCR:
+    </div>
+
+    <img
+        id="childProcessedPreview"
+        class="preview hidden"
+    >
+</details>
+
+<label>Besedilo</label>
 
 <textarea id="childInput">Sledi dolgo branje.</textarea>
 
@@ -1799,6 +1792,407 @@ function narediCrnoBeliCanvas(grayCanvas){
 }
 
 
+
+/* =====================================================
+   OCR – DODATNA IZBOLJŠAVA SLIKE
+===================================================== */
+
+function izostriCanvas(source){
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width =
+        source.width;
+
+    canvas.height =
+        source.height;
+
+    const ctx =
+        canvas.getContext(
+            "2d",
+            {willReadFrequently:true}
+        );
+
+    ctx.drawImage(source,0,0);
+
+    const imageData =
+        ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+    const src =
+        new Uint8ClampedArray(
+            imageData.data
+        );
+
+    const dst =
+        imageData.data;
+
+    const w =
+        canvas.width;
+
+    const h =
+        canvas.height;
+
+    const kernel = [
+         0,-1, 0,
+        -1, 5,-1,
+         0,-1, 0
+    ];
+
+    for(
+        let y = 1;
+        y < h - 1;
+        y++
+    ){
+
+        for(
+            let x = 1;
+            x < w - 1;
+            x++
+        ){
+
+            let value = 0;
+            let k = 0;
+
+            for(
+                let ky = -1;
+                ky <= 1;
+                ky++
+            ){
+
+                for(
+                    let kx = -1;
+                    kx <= 1;
+                    kx++
+                ){
+
+                    const i =
+                        (
+                            (y + ky) * w
+                            +
+                            (x + kx)
+                        ) * 4;
+
+                    value +=
+                        src[i] *
+                        kernel[k++];
+                }
+            }
+
+            value =
+                Math.max(
+                    0,
+                    Math.min(
+                        255,
+                        value
+                    )
+                );
+
+            const o =
+                (y * w + x) * 4;
+
+            dst[o] =
+                value;
+
+            dst[o+1] =
+                value;
+
+            dst[o+2] =
+                value;
+        }
+    }
+
+    ctx.putImageData(
+        imageData,
+        0,
+        0
+    );
+
+    return canvas;
+}
+
+
+function narediAdaptivniCrnoBeliCanvas(grayCanvas){
+
+    const canvas =
+        document.createElement("canvas");
+
+    canvas.width =
+        grayCanvas.width;
+
+    canvas.height =
+        grayCanvas.height;
+
+    const ctx =
+        canvas.getContext(
+            "2d",
+            {willReadFrequently:true}
+        );
+
+    ctx.drawImage(
+        grayCanvas,
+        0,
+        0
+    );
+
+    const imageData =
+        ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+    const data =
+        imageData.data;
+
+    const w =
+        canvas.width;
+
+    const h =
+        canvas.height;
+
+    /*
+       Adaptivni prag po lokalnem povprečju.
+       Dobro deluje pri sencah, neenakomerni svetlobi
+       in fotografijah papirja s telefonom.
+    */
+    const integral =
+        new Float64Array(
+            (w + 1) *
+            (h + 1)
+        );
+
+    for(
+        let y = 1;
+        y <= h;
+        y++
+    ){
+
+        let rowSum = 0;
+
+        for(
+            let x = 1;
+            x <= w;
+            x++
+        ){
+
+            const value =
+                data[
+                    (
+                        (y - 1) * w
+                        +
+                        (x - 1)
+                    ) * 4
+                ];
+
+            rowSum +=
+                value;
+
+            integral[
+                y * (w + 1) + x
+            ] =
+                integral[
+                    (y - 1) *
+                    (w + 1) +
+                    x
+                ]
+                +
+                rowSum;
+        }
+    }
+
+    const radius =
+        Math.max(
+            10,
+            Math.round(
+                Math.min(
+                    w,
+                    h
+                ) / 55
+            )
+        );
+
+    const offset =
+        12;
+
+    for(
+        let y = 0;
+        y < h;
+        y++
+    ){
+
+        const y1 =
+            Math.max(
+                0,
+                y - radius
+            );
+
+        const y2 =
+            Math.min(
+                h - 1,
+                y + radius
+            );
+
+        for(
+            let x = 0;
+            x < w;
+            x++
+        ){
+
+            const x1 =
+                Math.max(
+                    0,
+                    x - radius
+                );
+
+            const x2 =
+                Math.min(
+                    w - 1,
+                    x + radius
+                );
+
+            const A =
+                integral[
+                    y1 * (w + 1) +
+                    x1
+                ];
+
+            const B =
+                integral[
+                    y1 * (w + 1) +
+                    (x2 + 1)
+                ];
+
+            const C =
+                integral[
+                    (y2 + 1) *
+                    (w + 1) +
+                    x1
+                ];
+
+            const D =
+                integral[
+                    (y2 + 1) *
+                    (w + 1) +
+                    (x2 + 1)
+                ];
+
+            const area =
+                (x2 - x1 + 1) *
+                (y2 - y1 + 1);
+
+            const localMean =
+                (
+                    D - B - C + A
+                )
+                /
+                Math.max(
+                    1,
+                    area
+                );
+
+            const i =
+                (y * w + x) * 4;
+
+            const value =
+                data[i] <
+                localMean - offset
+                ?
+                0
+                :
+                255;
+
+            data[i] =
+                value;
+
+            data[i+1] =
+                value;
+
+            data[i+2] =
+                value;
+        }
+    }
+
+    ctx.putImageData(
+        imageData,
+        0,
+        0
+    );
+
+    return canvas;
+}
+
+
+function oceniOCRRezultat(rezultat){
+
+    const text =
+        rezultat.text || "";
+
+    const brezPresledkov =
+        text.replace(
+            /\s/g,
+            ""
+        );
+
+    if(
+        brezPresledkov.length === 0
+    ){
+        return -Infinity;
+    }
+
+    const crke =
+        (
+            text.match(
+                /\p{L}/gu
+            )
+            ||
+            []
+        ).length;
+
+    const nenavadni =
+        (
+            text.match(
+                /[^\p{L}\p{N}\s.,!?;:'"()\-–—]/gu
+            )
+            ||
+            []
+        ).length;
+
+    const crkovniDelez =
+        crke /
+        Math.max(
+            1,
+            brezPresledkov.length
+        );
+
+    /*
+       Tesseract confidence ostaja glavni kriterij,
+       vendar dodamo majhen bonus za normalen delež črk
+       in kazen za nenavadne znake.
+    */
+    return (
+        rezultat.confidence
+        +
+        crkovniDelez * 12
+        -
+        nenavadni * 0.7
+        +
+        Math.min(
+            8,
+            Math.log10(
+                brezPresledkov.length + 1
+            ) * 3
+        )
+    );
+}
+
+
 function pocistiOCRBesedilo(text){
 
     return text
@@ -1880,7 +2274,9 @@ async function izvediEnOCR(
             Number(
                 result.data.confidence ||
                 0
-            )
+            ),
+
+        score:0
     };
 }
 
@@ -1959,7 +2355,7 @@ async function izvediIzboljsaniOCR(
             );
 
         status.textContent =
-            "Izboljšujem kontrast ...";
+            "Izboljšujem kontrast in ostrino ...";
 
         await new Promise(
             resolve =>
@@ -1974,15 +2370,25 @@ async function izvediIzboljsaniOCR(
                 source
             );
 
-        const bw =
-            narediCrnoBeliCanvas(
+        const sharp =
+            izostriCanvas(
                 gray
             );
 
+        const bw =
+            narediCrnoBeliCanvas(
+                sharp
+            );
+
+        const adaptive =
+            narediAdaptivniCrnoBeliCanvas(
+                sharp
+            );
+
         preview.src =
-            gray.toDataURL(
+            sharp.toDataURL(
                 "image/jpeg",
-                0.92
+                0.94
             );
 
         preview.classList.remove(
@@ -1993,89 +2399,84 @@ async function izvediIzboljsaniOCR(
             "hidden"
         );
 
-        let najboljsi;
+        let kandidati = [];
 
         if(precise){
 
-            const prvi =
-                await izvediEnOCR(
-                    gray,
-                    status,
-                    "OCR 1/2"
-                );
+            const obdelave = [
+                {
+                    canvas:sharp,
+                    naziv:"OCR 1/3 – izostrena slika"
+                },
+                {
+                    canvas:bw,
+                    naziv:"OCR 2/3 – črno-bela slika"
+                },
+                {
+                    canvas:adaptive,
+                    naziv:"OCR 3/3 – prilagojena osvetlitev"
+                }
+            ];
 
-            const drugi =
-                await izvediEnOCR(
-                    bw,
-                    status,
-                    "OCR 2/2"
-                );
-
-            const d1 =
-                prvi.text
-                .replace(
-                    /\s/g,
-                    ""
-                )
-                .length;
-
-            const d2 =
-                drugi.text
-                .replace(
-                    /\s/g,
-                    ""
-                )
-                .length;
-
-            if(
-                d1 <
-                d2 * 0.35
+            for(
+                const obdelava of obdelave
             ){
 
-                najboljsi =
-                    drugi;
-
-                preview.src =
-                    bw.toDataURL(
-                        "image/png"
+                const rezultat =
+                    await izvediEnOCR(
+                        obdelava.canvas,
+                        status,
+                        obdelava.naziv
                     );
 
-            }else if(
-                d2 <
-                d1 * 0.35
-            ){
+                rezultat.canvas =
+                    obdelava.canvas;
 
-                najboljsi =
-                    prvi;
-
-            }else if(
-                drugi.confidence >
-                prvi.confidence
-            ){
-
-                najboljsi =
-                    drugi;
-
-                preview.src =
-                    bw.toDataURL(
-                        "image/png"
+                rezultat.score =
+                    oceniOCRRezultat(
+                        rezultat
                     );
 
-            }else{
-
-                najboljsi =
-                    prvi;
+                kandidati.push(
+                    rezultat
+                );
             }
 
         }else{
 
-            najboljsi =
+            const rezultat =
                 await izvediEnOCR(
-                    gray,
+                    sharp,
                     status,
                     "OCR"
                 );
+
+            rezultat.canvas =
+                sharp;
+
+            rezultat.score =
+                oceniOCRRezultat(
+                    rezultat
+                );
+
+            kandidati.push(
+                rezultat
+            );
         }
+
+        kandidati.sort(
+            (a,b) =>
+                b.score -
+                a.score
+        );
+
+        const najboljsi =
+            kandidati[0];
+
+        preview.src =
+            najboljsi.canvas.toDataURL(
+                "image/png"
+            );
 
         const textElement =
             document
@@ -2087,17 +2488,54 @@ async function izvediIzboljsaniOCR(
             najboljsi.text;
 
         textElement.dispatchEvent(
-            new Event("input", {bubbles:true})
+            new Event(
+                "input",
+                {bubbles:true}
+            )
         );
 
-        status.innerHTML =
-            "OCR končan. Ocena zanesljivosti: <strong>"
-            +
-            Math.round(
-                najboljsi.confidence
+        const dolzina =
+            najboljsi.text
+            .replace(
+                /\s/g,
+                ""
             )
-            +
-            " %</strong>. Besedilo pred uporabo preveri.";
+            .length;
+
+        if(
+            dolzina < 10
+        ){
+
+            status.innerHTML =
+                "<strong>OCR je zaznal zelo malo besedila.</strong> "
+                +
+                "Poskusi fotografirati samo list z besedilom, bolj naravnost in brez senc.";
+
+        }else{
+
+            status.innerHTML =
+                "OCR končan. Izbran je bil najboljši od "
+                +
+                kandidati.length
+                +
+                " poskus"
+                +
+                (
+                    kandidati.length === 1
+                    ?
+                    "a"
+                    :
+                    "ov"
+                )
+                +
+                ". Ocena zanesljivosti: <strong>"
+                +
+                Math.round(
+                    najboljsi.confidence
+                )
+                +
+                " %</strong>. Besedilo pred uporabo preveri.";
+        }
 
     }catch(error){
 
@@ -2106,14 +2544,14 @@ async function izvediIzboljsaniOCR(
         );
 
         status.textContent =
-            "OCR ni uspel. Poskusi fotografirati list bolj naravnost in pri boljši svetlobi.";
+            "OCR ni uspel. Poskusi fotografirati samo stran z besedilom, čim bolj naravnost, brez bleščanja in senc.";
     }
 }
 
 
-function ocrOtrok(){
+async function ocrOtrok(){
 
-    izvediIzboljsaniOCR(
+    await izvediIzboljsaniOCR(
         "childImage",
         "childInput",
         "childOCRStatus",
@@ -2121,6 +2559,8 @@ function ocrOtrok(){
         "childProcessedTitle",
         "childPreciseOCR"
     );
+
+    pripraviOtrokovoBesedilo();
 }
 
 
@@ -2603,18 +3043,18 @@ function prestejPovedi(text){
 const smogMeje = {
 
     2:{
-        Jesen:5,
-        Pomlad:7
+        min:5,
+        max:8
     },
 
     3:{
-        Jesen:9,
-        Pomlad:20
+        min:9,
+        max:25
     },
 
     4:{
-        Jesen:30,
-        Pomlad:40
+        min:26,
+        max:40
     }
 };
 
@@ -2739,12 +3179,21 @@ function prikaziAnalizoBesedila(){
         )
         .value;
 
-    const meja =
+    const smogRazpon =
         smogMeje[
             razred
-        ][
-            obdobje
         ];
+
+    const spodnjaMeja =
+        smogRazpon.min;
+
+    const zgornjaMeja =
+        smogRazpon.max;
+
+    /*
+       Za oceno primernosti zdaj uporabljamo razpon za razred:
+       2. razred 5–8 %, 3. razred 9–25 %, 4. razred 26–40 %.
+    */
 
     let dolzinaHTML =
         "";
@@ -2799,32 +3248,80 @@ function prikaziAnalizoBesedila(){
 
     }else{
 
-        const ustrezno =
-            analiza.delezZahtevnih <=
-            meja;
+        const podRazponom =
+            analiza.delezZahtevnih <
+            spodnjaMeja;
 
-        const relativniOdstotek =
-            meja > 0
-            ?
-            analiza.delezZahtevnih / meja * 100
-            :
-            0;
+        const nadRazponom =
+            analiza.delezZahtevnih >
+            zgornjaMeja;
+
+        const ustrezno =
+            !podRazponom &&
+            !nadRazponom;
+
+        const sirinaRazpona =
+            Math.max(
+                1,
+                zgornjaMeja -
+                spodnjaMeja
+            );
+
+        const polozajVRazponu =
+            (
+                analiza.delezZahtevnih -
+                spodnjaMeja
+            )
+            /
+            sirinaRazpona
+            *
+            100;
+
+        /*
+           Vizualna vrstica ima še nekaj prostora pod in nad
+           priporočenim razponom, da je jasno vidno tudi odstopanje.
+        */
+        const vizualniMin =
+            Math.max(
+                0,
+                spodnjaMeja -
+                sirinaRazpona * 0.5
+            );
+
+        const vizualniMax =
+            zgornjaMeja +
+            sirinaRazpona * 0.5;
 
         const markerPozicija =
             Math.max(
                 0,
                 Math.min(
                     100,
-                    relativniOdstotek / 150 * 100
+                    (
+                        analiza.delezZahtevnih -
+                        vizualniMin
+                    )
+                    /
+                    Math.max(
+                        1,
+                        vizualniMax -
+                        vizualniMin
+                    )
+                    *
+                    100
                 )
             );
 
         const statusMeje =
-            relativniOdstotek <= 100
+            podRazponom
             ?
-            "v priporočenem območju"
+            "pod priporočenim razponom"
             :
-            "nad priporočeno mejo";
+            nadRazponom
+            ?
+            "nad priporočenim razponom"
+            :
+            "v priporočenem razponu";
 
         smogHTML = `
         <div class="message ${ustrezno ? "good" : "warning"}">
@@ -2844,21 +3341,25 @@ function prikaziAnalizoBesedila(){
 
         <br>
 
-        Priporočena meja za
+        Priporočeni razpon za
         <strong>
-        ${razred}. razred – ${obdobje.toLowerCase()}
+        ${razred}. razred
         </strong>
         je
-        <strong>${meja} %</strong>.
+        <strong>${spodnjaMeja}–${zgornjaMeja} %</strong>.
 
         <br><br>
 
         ${
-            ustrezno
+            podRazponom
             ?
-            "Delež zahtevnih besed je znotraj priporočene meje."
+            "Delež zahtevnih besed je pod priporočenim razponom za ta razred."
             :
-            "Delež zahtevnih besed presega priporočeno mejo."
+            nadRazponom
+            ?
+            "Delež zahtevnih besed presega priporočeni razpon za ta razred."
+            :
+            "Delež zahtevnih besed je znotraj priporočenega razpona za ta razred."
         }
 
         
@@ -2866,16 +3367,22 @@ function prikaziAnalizoBesedila(){
         <div class="smog-visual">
             <div class="smog-visual-title">
                 <div>
-                    <strong>Položaj glede na mejo za ${razred}. razred – ${obdobje}</strong>
+                    <strong>Položaj glede na priporočeni razpon za ${razred}. razred</strong>
                     <div class="note">
                         Delež zelo zahtevnih besed: ${analiza.delezZahtevnih.toFixed(1)} %
                         &nbsp; | &nbsp;
-                        priporočena meja: ${meja} %
+                        priporočeni razpon: ${spodnjaMeja}–${zgornjaMeja} %
                     </div>
                 </div>
 
                 <div class="smog-percent">
-                    ${relativniOdstotek.toFixed(0)} % meje
+                    ${
+                        ustrezno
+                        ?
+                        Math.max(0,Math.min(100,polozajVRazponu)).toFixed(0) + " % skozi razpon"
+                        :
+                        statusMeje
+                    }
                 </div>
             </div>
 
@@ -2884,20 +3391,29 @@ function prikaziAnalizoBesedila(){
                 <div class="smog-threshold-line"></div>
                 <div class="smog-marker"
                      style="left:${markerPozicija}%"
-                     title="${relativniOdstotek.toFixed(0)} % priporočene meje"></div>
+                     title="${analiza.delezZahtevnih.toFixed(1)} % zahtevnih besed"></div>
             </div>
 
             <div class="smog-scale">
-                <span class="s0">0 %</span>
-                <span class="s50">50 % meje</span>
-                <span class="s100">100 % – meja</span>
-                <span class="s150">150 %+</span>
+                <span class="s0">nižja zahtevnost</span>
+                <span class="s50">${spodnjaMeja} %</span>
+                <span class="s100">${zgornjaMeja} %</span>
+                <span class="s150">višja zahtevnost</span>
             </div>
 
             <div class="smog-caption">
                 Besedilo je trenutno <strong>${statusMeje}</strong>.
-                100 % pomeni doseženo priporočeno mejo za izbrani razred in obdobje;
-                vrednost nad 100 % pomeni, da je delež zelo zahtevnih besed višji od te meje.
+                Priporočeni razpon za ${razred}. razred je
+                <strong>${spodnjaMeja}–${zgornjaMeja} %</strong> zelo zahtevnih besed.
+                ${
+                    ustrezno
+                    ?
+                    "Marker je približno " +
+                    Math.max(0,Math.min(100,polozajVRazponu)).toFixed(0) +
+                    " % poti od spodnje do zgornje meje razpona."
+                    :
+                    ""
+                }
             </div>
         </div>
 
