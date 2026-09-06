@@ -187,6 +187,20 @@ textarea{
 
 /* OTROŠKI POGLED */
 
+
+.text-editor-wrap{position:relative}
+.camera-icon{
+ position:absolute;top:12px;right:12px;z-index:10;width:42px;height:42px;min-height:42px;
+ padding:0;border:1px solid #aeb7c4;border-radius:50%;background:#fff;font-size:20px;
+ display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.08)
+}
+.camera-icon:hover{background:#f3f6fa}
+.hidden-file{display:none!important}
+.editable-reading{padding-right:68px!important;outline:none}
+.editable-reading:focus{box-shadow:0 0 0 3px rgba(37,91,196,.14)}
+.editable-reading:empty:before{content:attr(data-placeholder);color:#98a2b3}
+.inline-ocr{margin:8px 0 12px}
+
 .child-reading{
     min-height:430px;
     padding:34px;
@@ -647,6 +661,24 @@ textarea{
         width:calc(100vw - 24px);
     }
 }
+
+.teacher-main-panel{
+    margin-top:16px;
+}
+.teacher-reading-inline{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:1px solid #d9dee8;
+}
+.smog-reading-suitability{
+    margin:8px 0 14px;
+    font-size:15px;
+    font-weight:700;
+    min-height:20px;
+}
+.smog-reading-ok{color:#25834f;}
+.smog-reading-bad{color:#c83f3f;}
+
 </style>
 </head>
 
@@ -677,7 +709,7 @@ Odpri otroški pogled
 
 <div class="panel">
 <h2>Pogled učitelja</h2>
-<p>Ocena besedila, spremljanje napak, časa, tekočnosti in načina branja.</p>
+<p>Branje, spremljanje napak, časa, tekočnosti in načina branja.</p>
 
 <button class="primary" onclick="odpriUcitelja()">
 Odpri pogled učitelja
@@ -715,72 +747,17 @@ Nazaj
 
 <div class="panel">
 
-<h3>Besedilo</h3>
-
-<p class="note">
-Fotografiraj ali naloži besedilo, nato pritisni »Prepoznaj besedilo«. Ta način je stabilnejši pri fotografijah papirja.
-</p>
-
-<label>Fotografiraj ali naloži fotografijo besedila</label>
-
-<input
-    type="file"
-    id="childImage"
-    accept="image/*"
-    capture="environment"
-    onchange="prikaziSliko(this,'childPreview')"
->
-
+<h3>Nastavitve besedila</h3>
+<textarea id="childInput" class="hidden">Sledi dolgo branje.</textarea>
+<input type="file" id="childImage" class="hidden-file" accept="image/*" capture="environment"
+ onchange="prikaziSliko(this,'childPreview'); ocrOtrokIzIkone()">
 <img id="childPreview" class="preview hidden">
-
-<button
-    class="secondary"
-    style="margin-top:10px"
-    onclick="ocrOtrok()"
->
-Prepoznaj besedilo
-</button>
-
-<div id="childOCRStatus" class="ocr-status"></div>
-
-<details class="advanced-ocr">
-    <summary>Podrobnosti OCR</summary>
-
-    <div class="ocr-options">
-        <label>
-            <input
-                type="checkbox"
-                id="childPreciseOCR"
-                checked
-            >
-            Natančnejši OCR – primerjaj dve obdelavi slike
-        </label>
-
-        <div class="note">
-            Fotografija se pred prepoznavo poveča, pretvori v sivinsko in izboljša.
-        </div>
-    </div>
-
-    <div
-        id="childProcessedTitle"
-        class="ocr-preview-title hidden"
-    >
-        Slika, pripravljena za OCR:
-    </div>
-
-    <img
-        id="childProcessedPreview"
-        class="preview hidden"
-    >
-</details>
-
-<label>Besedilo</label>
-
-<textarea id="childInput">Sledi dolgo branje.</textarea>
-
+<input type="checkbox" id="childPreciseOCR" class="hidden" checked>
+<div id="childOCRStatus" class="ocr-status hidden"></div>
+<div id="childProcessedTitle" class="ocr-preview-title hidden">Slika, pripravljena za OCR:</div>
+<img id="childProcessedPreview" class="preview hidden">
 
 <div class="section">
-
 <h3>Prilagoditev prikaza</h3>
 
 <label>
@@ -896,10 +873,14 @@ Pripravi za branje
 
 
 <div>
-<div
-    id="childReadingText"
-    class="child-reading"
-></div>
+<div class="note" style="margin-bottom:8px">Besedilo vpiši, prilepi, popravi ali izbriši neposredno spodaj.</div>
+<div class="text-editor-wrap">
+<button class="camera-icon" type="button" title="Fotografiraj besedilo"
+ aria-label="Fotografiraj besedilo" onclick="document.getElementById('childImage').click()">📷</button>
+<div id="childReadingText" class="child-reading editable-reading" contenteditable="true"
+ spellcheck="false" data-placeholder="Prilepi ali vpiši besedilo ..."></div>
+</div>
+<div id="childInlineOCRStatus" class="ocr-status inline-ocr"></div>
 </div>
 
 </div>
@@ -916,20 +897,12 @@ Pripravi za branje
 <div class="toolbar">
     <div>
         <strong>Pogled učitelja</strong>
-        <div class="note">Vnesi ali fotografiraj besedilo, preveri primernost in nato nadaljuj na spremljanje branja.</div>
+        <div class="note">Vnesi ali fotografiraj besedilo in spremljaj branje na istem mestu.</div>
     </div>
     <button class="secondary" onclick="nazaj()">Nazaj</button>
 </div>
 
-<div class="teacher-tabs" role="tablist" aria-label="Delo z besedilom">
-    <button id="assessmentTabBtn" class="teacher-tab active" type="button" onclick="odpriUciteljskiZavihek('assessment')">Ocena besedila</button>
-    <button id="readingTabBtn" class="teacher-tab" type="button" onclick="odpriUciteljskiZavihek('reading')">Spremljanje branja</button>
-</div>
-
-<!-- 1. ZAVIHEK: OCENA BESEDILA -->
-<div id="teacherAssessmentTab" class="teacher-tab-page active">
-
-    <div class="compact-meta">
+<div class="compact-meta">
         <label>Učenec / šifra
             <input id="studentName" placeholder="npr. Ana ali U01">
         </label>
@@ -950,67 +923,33 @@ Pripravi za branje
         </label>
     </div>
 
-    <div class="assessment-layout">
-        <div class="panel">
-            <h2>Besedilo</h2>
-            <p class="note">Besedilo prilepi neposredno ali ga fotografiraj. Pri fotografiji nato pritisni »Prepoznaj besedilo«.</p>
+<div class="panel teacher-main-panel">
+    <h2>Branje</h2>
+    <p class="note">Besedilo vpiši, prilepi, popravi ali izbriši neposredno v velikem polju. Za fotografiranje uporabi ikono kamere.</p>
 
-            <label>Fotografiraj ali naloži fotografijo besedila</label>
-            <input
-                type="file"
-                id="teacherImage"
-                accept="image/*"
-                capture="environment"
-                onchange="prikaziSliko(this,'teacherPreview')"
-            >
+    <textarea id="teacherInput" class="hidden">Sledi dolgo branje.</textarea>
+    <input type="file" id="teacherImage" class="hidden-file" accept="image/*" capture="environment"
+           onchange="prikaziSliko(this,'teacherPreview'); ocrUciteljIzIkone()">
+    <img id="teacherPreview" class="preview hidden">
+    <input type="checkbox" id="teacherPreciseOCR" class="hidden" checked>
+    <div id="teacherOCRStatus" class="ocr-status hidden"></div>
+    <div id="teacherProcessedTitle" class="ocr-preview-title hidden">Slika, pripravljena za OCR:</div>
+    <img id="teacherProcessedPreview" class="preview hidden">
 
-            <img id="teacherPreview" class="preview hidden">
-            <button
-    class="secondary"
-    style="margin-top:10px"
-    onclick="ocrUcitelj()"
->
-Prepoznaj besedilo
-</button>
-
-<div id="teacherOCRStatus" class="ocr-status"></div>
-
-            <details class="advanced-ocr">
-                <summary>Podrobnosti OCR</summary>
-                <div class="ocr-options">
-                    <label>
-                        <input type="checkbox" id="teacherPreciseOCR" checked>
-                        Natančnejši OCR – primerjaj dve obdelavi slike
-                    </label>
-                    <div class="note">Fotografija se pred prepoznavo poveča, pretvori v sivinsko in izboljša.</div>
-                </div>
-                <div id="teacherProcessedTitle" class="ocr-preview-title hidden">Slika, pripravljena za OCR:</div>
-                <img id="teacherProcessedPreview" class="preview hidden">
-            </details>
-
-            <label>Besedilo</label>
-            <textarea id="teacherInput" placeholder="Prilepi ali napiši besedilo ...">Sledi dolgo branje.</textarea>
-            <div class="auto-hint">Ocena primernosti se osvežuje samodejno – brez dodatnega potrjevanja.</div>
-        </div>
-
-        <div class="panel">
-            <h2>Ocena primernosti besedila</h2>
-            <div id="textAnalysis">Besedilo še ni analizirano.</div>
-        </div>
+    <div class="text-editor-wrap">
+        <button class="camera-icon" type="button" title="Fotografiraj besedilo"
+                aria-label="Fotografiraj besedilo"
+                onclick="document.getElementById('teacherImage').click()">📷</button>
+        <div id="teacherDirectEditor" class="teacher-text editable-reading" contenteditable="true"
+             spellcheck="false" data-placeholder="Prilepi ali vpiši besedilo ...">Sledi dolgo branje.</div>
     </div>
-</div>
+    <div id="teacherInlineOCRStatus" class="ocr-status inline-ocr"></div>
 
-<!-- 2. ZAVIHEK: SPREMLJANJE BRANJA -->
-<div id="teacherReadingTab" class="teacher-tab-page">
-    <div class="panel">
-        <div class="toolbar">
-            <div>
-                <h2 style="margin:0">Spremljanje branja</h2>
-                <div class="note">Uporablja isto besedilo iz zavihka »Ocena besedila«.</div>
-            </div>
-        </div>
+    <!-- Skrito ostane samo zaradi analize in izvoza; uporabniku se velika kartica ne prikazuje. -->
+    <div id="textAnalysis" class="hidden"></div>
 
-        <div class="timer-box">
+    <div class="teacher-reading-inline">
+<div class="timer-box">
             <div>
                 <div class="note">Čas branja</div>
                 <div id="timer" class="timer">00:00</div>
@@ -1027,6 +966,7 @@ Prepoznaj besedilo
 
         <p id="modeHint" class="note">En klik označi problematično besedo. Ponovni klik odpre meni ob besedi. Dvojni klik odstrani oznako.</p>
         <div id="teacherText" class="teacher-text"></div>
+<div id="smogReadingSuitability" class="smog-reading-suitability"></div>
 
         <div class="live-box">
             <strong>Sprotno:</strong>
@@ -1079,6 +1019,7 @@ Prepoznaj besedilo
             <p class="note">Excel vsebuje rezultat meritve, posamezne napake, profil napak, SMOG analizo, opazovanja, besedilo in norme.</p>
             <button class="primary" onclick="izvoziExcel()">Izvozi vse podatke seje v Excel</button>
         </div>
+    
     </div>
 </div>
 
@@ -2855,6 +2796,70 @@ function pridobiBesede(text){
    OTROŠKI POGLED
 ===================================================== */
 
+
+function tekstIzEditorja(el){
+    return (el.innerText || el.textContent || "")
+        .replace(/\u00A0/g," ")
+        .replace(/\n{3,}/g,"\n\n");
+}
+
+function sinhronizirajOtrokovEditor(){
+    const editor=document.getElementById("childReadingText");
+    const input=document.getElementById("childInput");
+    if(editor && input) input.value=tekstIzEditorja(editor);
+}
+
+function sinhronizirajUciteljevEditor(){
+    const editor = document.getElementById("teacherDirectEditor");
+    const input = document.getElementById("teacherInput");
+
+    if(editor && input){
+        input.value = tekstIzEditorja(editor);
+
+        clearTimeout(window.__teacherEditorTimer);
+        window.__teacherEditorTimer = setTimeout(
+            () => {
+                pripraviUciteljevoBesedilo();
+                prikaziAnalizoBesedila();
+            },
+            300
+        );
+    }
+}
+
+
+async function ocrOtrokIzIkone(){
+    const s=document.getElementById("childInlineOCRStatus");
+    if(s) s.textContent="Prepoznavam besedilo ...";
+    await ocrOtrok();
+    pripraviOtrokovoBesedilo();
+    if(s) s.innerHTML=document.getElementById("childOCRStatus").innerHTML;
+}
+
+async function ocrUciteljIzIkone(){
+    const s = document.getElementById("teacherInlineOCRStatus");
+    if(s) s.textContent = "Prepoznavam besedilo ...";
+
+    await izvediIzboljsaniOCR(
+        "teacherImage",
+        "teacherInput",
+        "teacherOCRStatus",
+        "teacherProcessedPreview",
+        "teacherProcessedTitle",
+        "teacherPreciseOCR"
+    );
+
+    const editor = document.getElementById("teacherDirectEditor");
+    const input = document.getElementById("teacherInput");
+    if(editor && input) editor.innerText = input.value;
+
+    pripraviUciteljevoBesedilo();
+    prikaziAnalizoBesedila();
+
+    if(s) s.innerHTML = document.getElementById("teacherOCRStatus").innerHTML;
+}
+
+
 function pripraviOtrokovoBesedilo(){
 
     const text =
@@ -3372,6 +3377,52 @@ function prikaziAnalizoBesedila(){
        Za oceno primernosti zdaj uporabljamo razpon za razred:
        2. razred 5–8 %, 3. razred 9–25 %, 4. razred 26–40 %.
     */
+
+    const smogStatus =
+        document.getElementById(
+            "smogReadingSuitability"
+        );
+
+    if(smogStatus){
+        const odstotek =
+            Number(
+                analiza.delezZahtevnih || 0
+            );
+
+        const primerno =
+            odstotek <= zgornjaMeja;
+
+        smogStatus.className =
+            "smog-reading-suitability "
+            +
+            (
+                primerno
+                ?
+                "smog-reading-ok"
+                :
+                "smog-reading-bad"
+            );
+
+        smogStatus.textContent =
+            "SMOG berljivost: "
+            +
+            odstotek.toFixed(1)
+            +
+            " % – "
+            +
+            (
+                primerno
+                ?
+                "primerno za "
+                :
+                "ni primerno za "
+            )
+            +
+            razred
+            +
+            ". razred";
+    }
+
 
     let dolzinaHTML =
         "";
@@ -3899,41 +3950,12 @@ function pripraviUciteljevoBesedilo(){
    ZAVIHKI UČITELJSKEGA POGLEDA
 ===================================================== */
 
-function odpriUciteljskiZavihek(zavihek){
+function odpriUciteljskiZavihek(){
 
-    const assessment =
-        document.getElementById("teacherAssessmentTab");
-
-    const reading =
-        document.getElementById("teacherReadingTab");
-
-    const assessmentBtn =
-        document.getElementById("assessmentTabBtn");
-
-    const readingBtn =
-        document.getElementById("readingTabBtn");
-
-    if(zavihek === "reading"){
-
-        pripraviUciteljevoBesedilo();
-
-        assessment.classList.remove("active");
-        assessmentBtn.classList.remove("active");
-
-        reading.classList.add("active");
-        readingBtn.classList.add("active");
-
-    }else{
-
-        reading.classList.remove("active");
-        readingBtn.classList.remove("active");
-
-        assessment.classList.add("active");
-        assessmentBtn.classList.add("active");
-
-        prikaziAnalizoBesedila();
-    }
+    pripraviUciteljevoBesedilo();
+    prikaziAnalizoBesedila();
 }
+
 
 let teacherAnalysisTimer = null;
 
@@ -6755,6 +6777,10 @@ document
         pripraviOtrokovoBesedilo
     );
 
+
+
+document.getElementById("childReadingText").addEventListener("input",sinhronizirajOtrokovEditor);
+document.getElementById("teacherDirectEditor").addEventListener("input",sinhronizirajUciteljevEditor);
 
 document
     .getElementById(
